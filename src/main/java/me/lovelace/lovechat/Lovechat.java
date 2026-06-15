@@ -1,13 +1,13 @@
-package me.lovelace.advancedChat;
+package me.lovelace.lovechat;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import me.clip.placeholderapi.PlaceholderAPI;
-import me.lovelace.advancedChat.depends.CMISkinUtil;
-import me.lovelace.advancedChat.depends.ProtocolLibHook;
-import me.lovelace.advancedChat.expansion.ChatPlaceholderExpansion;
-import me.lovelace.advancedChat.listeners.ChatListener;
-import me.lovelace.advancedChat.managers.*;
+import me.lovelace.lovechat.depends.CMISkinUtil;
+import me.lovelace.lovechat.depends.ProtocolLibHook;
+import me.lovelace.lovechat.expansion.ChatPlaceholderExpansion;
+import me.lovelace.lovechat.listeners.ChatListener;
+import me.lovelace.lovechat.managers.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -15,7 +15,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.key.Key;
-import me.lovelace.advancedChat.depends.HeadComponentUtil;
+import me.lovelace.lovechat.depends.HeadComponentUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandExecutor;
@@ -34,13 +34,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Основной класс плагина AdvancedChat.
+ * Основной класс плагина Lovechat.
  * Строго оптимизирован под Paper API 1.21.11 (совместим с Folia) и Java 21.
  */
 @SuppressWarnings({"DuplicatedCode", "RedundantReturnStatement"})
-public final class AdvancedChat extends JavaPlugin {
+public final class Lovechat extends JavaPlugin {
 
-    private static AdvancedChat instance;
+    private static Lovechat instance;
     private DatabaseManager databaseManager;
     private ChatBubbleManager chatBubbleManager;
     private ChatPlaceholderExpansion placeholderExpansion;
@@ -90,7 +90,7 @@ public final class AdvancedChat extends JavaPlugin {
         return comp;
     }
 
-    public static @NotNull AdvancedChat getInstance() {
+    public static @NotNull Lovechat getInstance() {
         if (instance == null) {
             throw new IllegalStateException("Plugin instance not initialized");
         }
@@ -116,7 +116,7 @@ public final class AdvancedChat extends JavaPlugin {
         registerPlaceholderExpansion();
 
         CommandManager cmdManager = new CommandManager(this);
-        registerSafeCommand("ach", cmdManager);
+        registerSafeCommand("lovechat", cmdManager);
         registerSafeCommand("channel", cmdManager);
         registerSafeCommand("ignorechat", cmdManager);
         registerSafeCommand("messagedelete", cmdManager);
@@ -290,8 +290,8 @@ public final class AdvancedChat extends JavaPlugin {
     }
 
     public void deleteMessageVisual(int messageId, @NotNull org.bukkit.command.CommandSender sender) {
-        me.lovelace.advancedChat.api.AdvancedChatAPI.AdvancedChatDeleteEvent deleteEvent =
-                new me.lovelace.advancedChat.api.AdvancedChatAPI.AdvancedChatDeleteEvent(messageId, sender);
+        me.lovelace.lovechat.api.LovechatAPI.LovechatDeleteEvent deleteEvent =
+                new me.lovelace.lovechat.api.LovechatAPI.LovechatDeleteEvent(messageId, sender);
         Bukkit.getPluginManager().callEvent(deleteEvent);
 
         databaseManager.deleteMessage(messageId);
@@ -354,8 +354,8 @@ public final class AdvancedChat extends JavaPlugin {
         if (data == null) return;
 
         boolean useIncomingComponent = !Component.text(newText).equals(newTextComponent);
-        me.lovelace.advancedChat.api.AdvancedChatAPI.AdvancedChatMessageEditEvent editEvent =
-                new me.lovelace.advancedChat.api.AdvancedChatAPI.AdvancedChatMessageEditEvent(
+        me.lovelace.lovechat.api.LovechatAPI.LovechatMessageEditEvent editEvent =
+                new me.lovelace.lovechat.api.LovechatAPI.LovechatMessageEditEvent(
                         editor,
                         messageId,
                         data.rawText(),
@@ -390,7 +390,7 @@ public final class AdvancedChat extends JavaPlugin {
         }
         format = stripPlayerHoverClick(format);
 
-        if (finalMessageComponent == null && !editor.hasPermission("advancedchat.color")) {
+        if (finalMessageComponent == null && !editor.hasPermission("lovechat.color")) {
             finalText = MiniMessage.miniMessage().escapeTags(finalText);
         }
 
@@ -405,8 +405,8 @@ public final class AdvancedChat extends JavaPlugin {
 
         // Создаём компонент игрока: голова + имя с hover/click
         // Пытаемся получить кастомный скин из CMI
-        me.lovelace.advancedChat.depends.CMISkinUtil.SkinProperty skinProp =
-                me.lovelace.advancedChat.depends.CMISkinUtil.getSkinProperty(offlineOwner.getUniqueId(), ownerName);
+        me.lovelace.lovechat.depends.CMISkinUtil.SkinProperty skinProp =
+                me.lovelace.lovechat.depends.CMISkinUtil.getSkinProperty(offlineOwner.getUniqueId(), ownerName);
         String skinSignature = skinProp != null ? skinProp.signature() : null;
         Component headComponent = HeadComponentUtil.createHeadComponent(
                 offlineOwner.getUniqueId(),
@@ -486,7 +486,7 @@ public final class AdvancedChat extends JavaPlugin {
 
             // Добавляем кнопки только автору сообщения или админам
             boolean isOwner = p.getUniqueId().equals(ownerUuid);
-            boolean isAdmin = p.hasPermission("advancedchat.admin") || p.hasPermission("advancedchat.moderation");
+            boolean isAdmin = p.hasPermission("lovechat.admin") || p.hasPermission("lovechat.moderation");
 
             // Кнопки добавляются ПОСЛЕ сообщения
             Component newComponent;

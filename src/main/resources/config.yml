@@ -1,5 +1,5 @@
 # ========================================== #
-#       AdvancedChat Configuration           #
+#       Lovechat Configuration           #
 #          Version 2.6                       #
 # ========================================== #
 # Основные настройки плагина
@@ -31,7 +31,7 @@ chat:
   # Отправлять сообщения в JSON формате (для продвинутого форматирования)
   chat-json: true
   # Разрешение для использования JSON формата
-  permission: "advancedchat.json"
+  permission: "lovechat.json"
   # Максимальная длина сообщения
   max-length: 256
   # Минимальная задержка между сообщениями (в секундах, 0 = отключено)
@@ -52,11 +52,11 @@ colors:
   # Поддержка градиентов
   gradient-support: true
   # Разрешение для использования цветов
-  color-permission: "advancedchat.color"
+  color-permission: "lovechat.color"
   # Разрешение для использования градиентов
-  gradient-permission: "advancedchat.gradient"
+  gradient-permission: "lovechat.gradient"
   # Разрешение для использования форматов
-  format-permission: "advancedchat.format"
+  format-permission: "lovechat.format"
   # Hover эффекты при наведении на имя игрока
   hover:
     enable: true
@@ -75,7 +75,7 @@ colors:
       prefix: ""
       radius: 200
       format: "<delete_edit_buttons><gray>[L] </gray><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <white><message></white>"
-      permission: "advancedchat.local"
+      permission: "lovechat.local"
       command:
         - local
         - local chat
@@ -87,7 +87,7 @@ colors:
       prefix: "!"
       radius: -1
       format: "<delete_edit_buttons><yellow>[G] </yellow><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <gradient:#FFAA00:#FF0000><message></gradient>"
-      permission: "advancedchat.global"
+      permission: "lovechat.global"
       command:
         - global
         - global chat
@@ -97,7 +97,7 @@ colors:
       prefix: "adm"
       radius: -1
       format: "<delete_edit_buttons><red>[A] </red><hover:show_text:'<red>Администратор'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <red><message></red>"
-      permission: "advancedchat.admin"
+      permission: "lovechat.admin"
       command:
         - adm
       cooldown: 0
@@ -107,7 +107,7 @@ colors:
     #  prefix: "$"
     #  radius: -1
     #  format: "<delete_edit_buttons><gold>[VIP] </gold><hover:show_text:'<gray>Кликни для /msg <player>'><click:suggest_command:'/msg <player> '><head:player:player></click></hover>: <gold><message></gold>"
-    #  permission: "advancedchat.vip"
+    #  permission: "lovechat.vip"
     #  command:
     #    - vip
     #  cooldown: 0
@@ -125,9 +125,9 @@ messagedelete:
   # Текст замены при полном удалении
   replacement-text: "<gray><i>Сообщение было удалено</i></gray>"
   # Разрешение для удаления своих сообщений
-  delete-permission: "advancedchat.delete"
+  delete-permission: "lovechat.delete"
   # Разрешение для удаления чужих сообщений
-  delete-others-permission: "advancedchat.delete.others"
+  delete-others-permission: "lovechat.delete.others"
   # Время для удаления своих сообщений (в секундах, 0 = без ограничений)
   delete-time-limit: 0
   # Удалять сообщения из базы данных
@@ -142,9 +142,9 @@ messageedit:
   # Метка отредактированного сообщения
   mark: " <dark_gray><i>(изм.)</i></dark_gray>"
   # Разрешение для редактирования своих сообщений
-  edit-permission: "advancedchat.edit"
+  edit-permission: "lovechat.edit"
   # Разрешение для редактирования чужих сообщений
-  edit-others-permission: "advancedchat.edit.others"
+  edit-others-permission: "lovechat.edit.others"
   # Время для редактирования (в секундах, 0 = без ограничений)
   edit-time-limit: 300
   # Максимум редактирований одного сообщения
@@ -162,7 +162,7 @@ ignore:
   # Админы обходят игнор
   admins-bypass: true
   # Разрешение для обхода игнора
-  bypass-permission: "advancedchat.ignore.bypass"
+  bypass-permission: "lovechat.ignore.bypass"
   # Максимум игроков в игнор-листе
   max-ignored: 50
   # Показывать сообщение при попытке написать игнорируемому
@@ -180,9 +180,9 @@ mentions:
   # Алиасы для @everyone
   everyone-aliases: ["everyone", "all", "here", "все", "всем"]
   # Разрешение для использования @everyone
-  everyone-permission: "advancedchat.mention.everyone"
+  everyone-permission: "lovechat.mention.everyone"
   # Разрешение для обхода кулдауна @everyone
-  everyone-bypass-permission: "advancedchat.mention.everyone.bypass"
+  everyone-bypass-permission: "lovechat.mention.everyone.bypass"
   # Формат упоминания для других игроков
   format: "<gradient:#00FF00:#00AA00><b>@%player%</b></gradient>"
   # Формат упоминания для цели
@@ -200,7 +200,7 @@ mentions:
     enabled: true
     text: "<gold>Вас упомянули в чате!</gold>"
   # Разрешение для упоминаний
-  permission-mention: "advancedchat.mention"
+  permission-mention: "lovechat.mention"
   # Блокировать упоминания оффлайн игроков
   block-offline: false
   # Максимум упоминаний в одном сообщении
@@ -212,9 +212,9 @@ mentions:
 links:
   enabled: true
   format: "<hover:show_text:'<gray>Нажмите для перехода:<br><white>%link%</white>'><click:open_url:'%url%'><aqua><b>[Ссылка]</b></aqua></click></hover>"
-  permission: "advancedchat.links"
+  permission: "lovechat.links"
   # Разрешение для отправки ссылок
-  send-permission: "advancedchat.links.send"
+  send-permission: "lovechat.links.send"
   # Блокировать ссылки для игроков без разрешения
   block-without-permission: false
   # Сообщение при блокировке ссылки
@@ -235,7 +235,7 @@ links:
 # ========================================== #
 database:
   enabled: true
-  file: "chat.db"
+  file: "lovechat.db"
   # Тип базы данных (sqlite)
   type: "sqlite"
   # Статистика игроков
@@ -262,9 +262,9 @@ staff-notifications:
   # Кулдаун между уведомлениями (в секундах)
   cooldown: 60
   # Разрешение для получения уведомлений
-  permission-receive: "advancedchat.staff.receive"
+  permission-receive: "lovechat.staff.receive"
   # Разрешение для отправки уведомлений
-  permission-send: "advancedchat.staff.notify"
+  permission-send: "lovechat.staff.notify"
   # Формат уведомления
   format: "<red>[Внимание]</red> <yellow>Игрок <player> просит помощи:</yellow> <gray><message></gray>"
   # Звук уведомления
@@ -300,7 +300,7 @@ chatbubbles:
   # Показывать префикс канала
   show-channel-prefix: false
   # Разрешение для использования chatbubbles
-  permission: "advancedchat.chatbubbles"
+  permission: "lovechat.chatbubbles"
   # Скрывать от игроков в режиме silent
   hide-from-silent: true
   # Анимация появления
@@ -321,7 +321,7 @@ chatbubbles:
   # Spy режим - видеть все каналы
   spy:
     enabled: true
-    permission: "advancedchat.spy"
+    permission: "lovechat.spy"
     # Формат сообщения в spy режиме
     format: "<dark_gray>[SPY] </dark_gray>"
     # Показывать в Action Bar
@@ -329,7 +329,7 @@ chatbubbles:
   # Silent режим - скрытый режим
   silent:
     enabled: true
-    permission: "advancedchat.silent"
+    permission: "lovechat.silent"
     # Блокировать упоминания в silent режиме
     block-mentions: true
     # Показывать сообщение при включении
@@ -337,9 +337,9 @@ chatbubbles:
   # Tag режим - отключение тегов
   tags:
     enabled: true
-    permission: "advancedchat.tagtoggle"
+    permission: "lovechat.tagtoggle"
     # Разрешение для управления тегами других
-    others-permission: "advancedchat.tagtoggle.others"
+    others-permission: "lovechat.tagtoggle.others"
 
 # ========================================== #
 #      ИНТЕГРАЦИИ                            #
@@ -367,16 +367,16 @@ commands:
   prefix: "/chat"
   # Алиасы команд
   aliases:
-    ach: ["advancedchat", "achat"]
+    ach: ["lovechat", "achat"]
     channel: ["ch", "c"]
     ignore: ["ig"]
     chatclear: ["cc", "clearchat"]
   # Разрешения для команд
   permissions:
-    reload: "advancedchat.admin"
-    clear: "advancedchat.clear"
-    spy: "advancedchat.spy"
-    silent: "advancedchat.silent"
+    reload: "lovechat.admin"
+    clear: "lovechat.clear"
+    spy: "lovechat.spy"
+    silent: "lovechat.silent"
 
 # ========================================== #
 #      ПРОИЗВОЛЬНОЕ                          #
@@ -387,6 +387,6 @@ custom-channels:
   # Максимум кастомных каналов
   max-channels: 10
   # Разрешение для создания каналов
-  create-permission: "advancedchat.channel.create"
+  create-permission: "lovechat.channel.create"
   # Разрешение для удаления каналов
-  delete-permission: "advancedchat.channel.delete"
+  delete-permission: "lovechat.channel.delete"

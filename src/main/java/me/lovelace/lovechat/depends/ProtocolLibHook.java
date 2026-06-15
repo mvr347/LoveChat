@@ -1,4 +1,4 @@
-package me.lovelace.advancedChat.depends;
+package me.lovelace.lovechat.depends;
 
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
@@ -7,7 +7,7 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
-import me.lovelace.advancedChat.AdvancedChat;
+import me.lovelace.lovechat.Lovechat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -15,17 +15,17 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public class ProtocolLibHook {
-    private final AdvancedChat advancedChat;
+    private final Lovechat lovechat;
 
-    public ProtocolLibHook(@NotNull AdvancedChat plugin) {
-        this.advancedChat = plugin;
+    public ProtocolLibHook(@NotNull Lovechat plugin) {
+        this.lovechat = plugin;
     }
 
     public void register() {
         ProtocolManager manager = ProtocolLibrary.getProtocolManager();
 
         manager.addPacketListener(new PacketAdapter(
-                advancedChat,
+                lovechat,
                 ListenerPriority.NORMAL,
                 PacketType.Play.Server.SYSTEM_CHAT,
                 PacketType.Play.Server.DISGUISED_CHAT // Обязательно для сообщений от других плагинов
@@ -33,7 +33,7 @@ public class ProtocolLibHook {
             @Override
             public void onPacketSending(PacketEvent event) {
                 Player player = event.getPlayer();
-                if (advancedChat.isWorldDisabled(player.getWorld().getName())) {
+                if (lovechat.isWorldDisabled(player.getWorld().getName())) {
                     return;
                 }
 
@@ -72,7 +72,7 @@ public class ProtocolLibHook {
                 String plainText = PlainTextComponentSerializer.plainText().serialize(component);
 
                 // Если сообщение должно быть проигнорировано анти-спам кэшем перерисовки
-                if (advancedChat.shouldIgnorePacket(player.getUniqueId(), plainText)) {
+                if (lovechat.shouldIgnorePacket(player.getUniqueId(), plainText)) {
                     return;
                 }
 
@@ -81,7 +81,7 @@ public class ProtocolLibHook {
                     return;
                 }
 
-                advancedChat.recordSystemMessageFromPacket(player, component);
+                lovechat.recordSystemMessageFromPacket(player, component);
             }
         });
     }

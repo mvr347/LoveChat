@@ -1,4 +1,4 @@
-package me.lovelace.advancedChat.depends;
+package me.lovelace.lovechat.depends;
 
 import net.kyori.adventure.text.Component;
 import java.lang.reflect.Constructor;
@@ -497,7 +497,7 @@ public class HeadComponentUtil {
 
     private static void debugMethods(String label, Class<?> type) {
         try {
-            if (!me.lovelace.advancedChat.AdvancedChat.getInstance().getConfig().getBoolean("general.debug", false)) return;
+            if (!me.lovelace.lovechat.Lovechat.getInstance().getConfig().getBoolean("general.debug", false)) return;
         } catch (Exception ignored) {
             return;
         }
@@ -514,7 +514,7 @@ public class HeadComponentUtil {
                 sb.append(")");
             }
         }
-        me.lovelace.advancedChat.AdvancedChat.getInstance().getLogger().info(sb.toString());
+        me.lovelace.lovechat.Lovechat.getInstance().getLogger().info(sb.toString());
     }
 
     private static Component convertToAdventure(Object nmsComponent) {
@@ -565,8 +565,8 @@ public class HeadComponentUtil {
 
     private static void debug(String msg) {
         try {
-            if (!me.lovelace.advancedChat.AdvancedChat.getInstance().getConfig().getBoolean("general.debug", false)) return;
-            me.lovelace.advancedChat.AdvancedChat.getInstance().getLogger().info("[SkinDebug] HeadComponentUtil: " + msg);
+            if (!me.lovelace.lovechat.Lovechat.getInstance().getConfig().getBoolean("general.debug", false)) return;
+            me.lovelace.lovechat.Lovechat.getInstance().getLogger().info("[SkinDebug] HeadComponentUtil: " + msg);
         } catch (Exception ignored) {}
     }
 }

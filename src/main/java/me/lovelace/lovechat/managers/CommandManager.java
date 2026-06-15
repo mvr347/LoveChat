@@ -1,6 +1,6 @@
-package me.lovelace.advancedChat.managers;
+package me.lovelace.lovechat.managers;
 
-import me.lovelace.advancedChat.AdvancedChat;
+import me.lovelace.lovechat.Lovechat;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -20,10 +20,10 @@ import java.util.Locale;
 
 @SuppressWarnings("RedundantReturnStatement")
 public class CommandManager implements CommandExecutor, TabCompleter {
-    private final AdvancedChat plugin;
+    private final Lovechat plugin;
     private final MiniMessage mm = MiniMessage.miniMessage();
 
-    public CommandManager(@NotNull AdvancedChat plugin) {
+    public CommandManager(@NotNull Lovechat plugin) {
         this.plugin = plugin;
     }
 
@@ -40,7 +40,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             plugin.sendMessage(p, "world-disabled");
             return;
         }
-        boolean isAchCmd = command.getName().equalsIgnoreCase("ach") || command.getName().equalsIgnoreCase("chat");
+        boolean isAchCmd = command.getName().equalsIgnoreCase("lovechat") || command.getName().equalsIgnoreCase("chat");
         boolean isSilentCmd = command.getName().equalsIgnoreCase("silent") || (isAchCmd && args.length >= 1 && args[0].equalsIgnoreCase("silent"));
         boolean isTagToggleCmd = command.getName().equalsIgnoreCase("tagtoggle") || (isAchCmd && args.length >= 1 && args[0].equalsIgnoreCase("tagtoggle"));
         boolean isSpyCmd = command.getName().equalsIgnoreCase("spy") || (isAchCmd && args.length >= 1 && args[0].equalsIgnoreCase("spy"));
@@ -49,7 +49,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         // --- CHAT CLEAR ---
         if (isChatClearCmd) {
-            int argStartIndex = (command.getName().equalsIgnoreCase("ach") || command.getName().equalsIgnoreCase("chat")) ? 1 : 0;
+            int argStartIndex = (command.getName().equalsIgnoreCase("lovechat") || command.getName().equalsIgnoreCase("chat")) ? 1 : 0;
             String mode = "personal";
             boolean clearConsole = false;
 
@@ -60,12 +60,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 else if (arg.equals("-c")) clearConsole = true;
             }
 
-            if (!mode.equals("personal") && !sender.hasPermission("advancedchat.clear.global")) {
+            if (!mode.equals("personal") && !sender.hasPermission("lovechat.clear.global")) {
                 plugin.sendMessage(sender, "no-permission");
                 return;
             }
 
-            if (clearConsole && !sender.hasPermission("advancedchat.clear.console")) {
+            if (clearConsole && !sender.hasPermission("lovechat.clear.console")) {
                 plugin.sendMessage(sender, "no-permission");
                 return;
             }
@@ -94,7 +94,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         // --- SPY MODE ---
         if (isSpyCmd) {
-            if (!sender.hasPermission("advancedchat.spy")) {
+            if (!sender.hasPermission("lovechat.spy")) {
                 plugin.sendMessage(sender, "no-permission");
                 return;
             }
@@ -108,7 +108,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         // --- SILENT MODE ---
         if (isSilentCmd) {
-            if (!sender.hasPermission("advancedchat.silent")) {
+            if (!sender.hasPermission("lovechat.silent")) {
                 plugin.sendMessage(sender, "no-permission");
                 return;
             }
@@ -122,17 +122,17 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         // --- TAG TOGGLE ---
         if (isTagToggleCmd) {
-            if (!sender.hasPermission("advancedchat.tagtoggle")) {
+            if (!sender.hasPermission("lovechat.tagtoggle")) {
                 plugin.sendMessage(sender, "no-permission");
                 return;
             }
 
             Player target = null;
             if (command.getName().equalsIgnoreCase("tagtoggle")) {
-                if (args.length >= 1 && sender.hasPermission("advancedchat.admin")) target = Bukkit.getPlayer(args[0]);
+                if (args.length >= 1 && sender.hasPermission("lovechat.admin")) target = Bukkit.getPlayer(args[0]);
                 else if (sender instanceof Player) target = (Player) sender;
             } else {
-                if (args.length >= 2 && sender.hasPermission("advancedchat.admin")) target = Bukkit.getPlayer(args[1]);
+                if (args.length >= 2 && sender.hasPermission("lovechat.admin")) target = Bukkit.getPlayer(args[1]);
                 else if (sender instanceof Player) target = (Player) sender;
             }
 
@@ -215,7 +215,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return;
             }
 
-            if (target.hasPermission("advancedchat.admin") && plugin.getConfig().getBoolean("ignore.admins-bypass", true)) {
+            if (target.hasPermission("lovechat.admin") && plugin.getConfig().getBoolean("ignore.admins-bypass", true)) {
                 plugin.sendMessage(p, "ignore-admin");
                 return;
             }
@@ -234,10 +234,10 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             if (args.length == 0) return;
             try {
                 int msgId = Integer.parseInt(args[0]);
-                AdvancedChat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
+                Lovechat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
 
                 // Перевел права на стандартную модель, 
-                boolean isAdmin = sender.hasPermission("advancedchat.delete.admin") || sender.isOp();
+                boolean isAdmin = sender.hasPermission("lovechat.delete.admin") || sender.isOp();
 
                 if (data == null) {
                     if (isAdmin) plugin.deleteMessageVisual(msgId, sender);
@@ -247,7 +247,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
                 boolean isOwn = sender instanceof Player player && data.owner().equals(player.getUniqueId());
 
-                if (isAdmin || (isOwn && sender.hasPermission("advancedchat.delete"))) {
+                if (isAdmin || (isOwn && sender.hasPermission("lovechat.delete"))) {
                     plugin.deleteMessageVisual(msgId, sender);
                 } else {
                     plugin.sendMessage(sender, "delete-not-yours");
@@ -272,17 +272,17 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
             try {
                 int msgId = Integer.parseInt(args[0]);
-                AdvancedChat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
+                Lovechat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
 
                 if (data == null) {
                     plugin.sendMessage(sender, "edit-not-found");
                     return;
                 }
 
-                boolean isAdmin = p.hasPermission("advancedchat.edit.admin") || p.isOp();
+                boolean isAdmin = p.hasPermission("lovechat.edit.admin") || p.isOp();
                 boolean isOwn = data.owner().equals(p.getUniqueId());
 
-                if (!isAdmin && !(isOwn && p.hasPermission("advancedchat.edit"))) {
+                if (!isAdmin && !(isOwn && p.hasPermission("lovechat.edit"))) {
                     plugin.sendMessage(sender, "delete-not-yours"); // Здесь в messages.yml должно быть "edit-not-yours" по-хорошему
                     return;
                 }
@@ -295,7 +295,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         // --- ACH COMMAND ---
         if (isAchCmd) {
-            if (args.length >= 1 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("advancedchat.admin")) {
+            if (args.length >= 1 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("lovechat.admin")) {
                 String type = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "all";
                 if (type.equals("config")) {
                     plugin.reloadConfig();
@@ -317,12 +317,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
             if (args.length == 0) {
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-header")));
-                if (sender.hasPermission("advancedchat.admin")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-reload")));
+                if (sender.hasPermission("lovechat.admin")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-reload")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-chat")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-silent")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-ignore")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-chatclear")));
-                if (sender.hasPermission("advancedchat.spy")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-spy")));
+                if (sender.hasPermission("lovechat.spy")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-spy")));
                 return;
             }
         }
@@ -334,17 +334,17 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (command.getName().equalsIgnoreCase("ach")) {
+        if (command.getName().equalsIgnoreCase("lovechat")) {
             if (args.length == 1) {
-                if (sender.hasPermission("advancedchat.admin")) completions.add("reload");
+                if (sender.hasPermission("lovechat.admin")) completions.add("reload");
                 completions.add("silent");
                 completions.add("ignore");
                 completions.add("chatclear");
-                if (sender.hasPermission("advancedchat.tagtoggle")) completions.add("tagtoggle");
-                if (sender.hasPermission("advancedchat.spy")) completions.add("spy");
+                if (sender.hasPermission("lovechat.tagtoggle")) completions.add("tagtoggle");
+                if (sender.hasPermission("lovechat.spy")) completions.add("spy");
                 return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
             }
-            else if (args.length == 2 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("advancedchat.admin")) {
+            else if (args.length == 2 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("lovechat.admin")) {
                 completions.add("all");
                 completions.add("config");
                 completions.add("message");
@@ -352,14 +352,14 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return StringUtil.copyPartialMatches(args[1], completions, new ArrayList<>());
             }
             else if (args.length == 2 && args[0].equalsIgnoreCase("chatclear")) {
-                if (sender.hasPermission("advancedchat.clear.global")) {
+                if (sender.hasPermission("lovechat.clear.global")) {
                     completions.add("all");
                     completions.add("users");
                 }
                 return StringUtil.copyPartialMatches(args[1], completions, new ArrayList<>());
             }
             else if (args.length == 3 && args[0].equalsIgnoreCase("chatclear")) {
-                if (sender.hasPermission("advancedchat.clear.console")) completions.add("-c");
+                if (sender.hasPermission("lovechat.clear.console")) completions.add("-c");
                 return StringUtil.copyPartialMatches(args[2], completions, new ArrayList<>());
             }
             else if (args.length == 2 && (args[0].equalsIgnoreCase("tagtoggle") || args[0].equalsIgnoreCase("ignore"))) {
@@ -369,11 +369,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         }
 
         if (command.getName().equalsIgnoreCase("chatclear") || command.getName().equalsIgnoreCase("cc")) {
-            if (args.length == 1 && sender.hasPermission("advancedchat.clear.global")) {
+            if (args.length == 1 && sender.hasPermission("lovechat.clear.global")) {
                 completions.add("all");
                 completions.add("users");
                 return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
-            } else if (args.length == 2 && sender.hasPermission("advancedchat.clear.console")) {
+            } else if (args.length == 2 && sender.hasPermission("lovechat.clear.console")) {
                 completions.add("-c");
                 return StringUtil.copyPartialMatches(args[1], completions, new ArrayList<>());
             }
@@ -394,7 +394,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             }
         }
 
-        if (command.getName().equalsIgnoreCase("tagtoggle") && sender.hasPermission("advancedchat.admin")) {
+        if (command.getName().equalsIgnoreCase("tagtoggle") && sender.hasPermission("lovechat.admin")) {
             if (args.length == 1) {
                 for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
                 return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());

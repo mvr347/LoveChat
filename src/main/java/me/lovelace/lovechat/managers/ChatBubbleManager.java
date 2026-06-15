@@ -1,6 +1,6 @@
-package me.lovelace.advancedChat.managers;
+package me.lovelace.lovechat.managers;
 
-import me.lovelace.advancedChat.AdvancedChat;
+import me.lovelace.lovechat.Lovechat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ChatBubbleManager {
 
-    private final AdvancedChat plugin;
+    private final Lovechat plugin;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final Map<UUID, BubbleInstance> playerBubbles = new ConcurrentHashMap<>();
 
@@ -43,7 +43,7 @@ public class ChatBubbleManager {
     private int checkRadius;
     private Set<String> allowedChannels;
 
-    public ChatBubbleManager(@NotNull AdvancedChat plugin) {
+    public ChatBubbleManager(@NotNull Lovechat plugin) {
         this.plugin = plugin;
         loadConfig();
     }
@@ -92,7 +92,7 @@ public class ChatBubbleManager {
             message = message.substring(0, maxLength - 3) + "...";
         }
 
-        if (!player.hasPermission("advancedchat.color")) {
+        if (!player.hasPermission("lovechat.color")) {
             message = miniMessage.escapeTags(message);
         }
 

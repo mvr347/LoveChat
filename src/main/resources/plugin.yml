@@ -1,14 +1,14 @@
-name: AdvancedChat
-version: "2.5"
-main: me.lovelace.advancedChat.AdvancedChat
+name: Lovechat
+version: "3.0"
+main: me.lovelace.lovechat.Lovechat
 api-version: '1.21.11'
 softdepend: [PlaceholderAPI, CMI, ProtocolLib]
 libraries:
   - "com.github.ben-manes.caffeine:caffeine:3.1.8"
 commands:
-  ach:
+  lovechat:
     description: Основная команда плагия
-    aliases: [chat]
+    aliases: [chat, lc]
   channel:
     description: Переключить канал чата
     aliases: [ch, c]
@@ -31,43 +31,43 @@ commands:
   spy:
     description: Режим шпиона
 permissions:
-  advancedchat.admin:
+  lovechat.admin:
     default: op
-  advancedchat.use:
+  lovechat.use:
     default: true
-  advancedchat.delete.own:
+  lovechat.delete.own:
     default: true
-  advancedchat.delete:
+  lovechat.delete:
     default: true
-  advancedchat.delete.others:
+  lovechat.delete.others:
     default: op
-  advancedchat.delete.admin:
+  lovechat.delete.admin:
     default: op
-  advancedchat.edit:
+  lovechat.edit:
     default: true
-  advancedchat.edit.others:
+  lovechat.edit.others:
     default: op
-  advancedchat.edit.admin:
+  lovechat.edit.admin:
     default: op
-  advancedchat.mention:
+  lovechat.mention:
     default: true
-  advancedchat.mention.everyone:
+  lovechat.mention.everyone:
     default: op
-  advancedchat.mention.everyone.bypass:
+  lovechat.mention.everyone.bypass:
     default: op
-  advancedchat.links:
+  lovechat.links:
     default: true
-  advancedchat.color:
+  lovechat.color:
     default: true
-  advancedchat.silent:
+  lovechat.silent:
     default: true
-  advancedchat.tagtoggle:
+  lovechat.tagtoggle:
     default: op
-  advancedchat.spy:
+  lovechat.spy:
     default: op
-  advancedchat.clear.global:
+  lovechat.clear.global:
     default: op
-  advancedchat.clear.console:
+  lovechat.clear.console:
     default: op
   chat.edit:
     description: "Разрешает удалять и редактировать свои сообщения"
@@ -76,14 +76,14 @@ permissions:
     description: "Разрешает удалять и редактировать чужие сообщения"
     default: op
   # Reactions permissions
-  advancedchat.reaction.use:
+  lovechat.reaction.use:
     default: true
-  advancedchat.reaction.see:
+  lovechat.reaction.see:
     default: true
-  advancedchat.reaction.admin:
+  lovechat.reaction.admin:
     default: op
   # Quote/Reply permissions
-  advancedchat.quote.use:
+  lovechat.quote.use:
     default: true
-  advancedchat.quote.see:
+  lovechat.quote.see:
     default: true

@@ -1,8 +1,8 @@
-package me.lovelace.advancedChat.depends;
+package me.lovelace.lovechat.depends;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import me.lovelace.advancedChat.AdvancedChat;
+import me.lovelace.lovechat.Lovechat;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -43,14 +43,14 @@ public class CMISkinUtil {
                 // Пробуем найти метод getSkin(UUID)
                 try {
                     getSkinByUuidMethod = skinManagerClass.getMethod("getSkin", UUID.class);
-                    AdvancedChat.getInstance().getLogger().info("CMI найден! Поддержка скинов включена (UUID метод).");
+                    Lovechat.getInstance().getLogger().info("CMI найден! Поддержка скинов включена (UUID метод).");
                 } catch (NoSuchMethodException e) {
                     // Пробуем альтернативные методы
                     try {
                         getSkinByUuidMethod = skinManagerClass.getMethod("getSkin", String.class);
-                        AdvancedChat.getInstance().getLogger().info("CMI найден! Поддержка скинов включена (String метод).");
+                        Lovechat.getInstance().getLogger().info("CMI найден! Поддержка скинов включена (String метод).");
                     } catch (NoSuchMethodException ex) {
-                        AdvancedChat.getInstance().getLogger().warning("CMI найден, но метод getSkin не доступен. Используем стандартные головы.");
+                        Lovechat.getInstance().getLogger().warning("CMI найден, но метод getSkin не доступен. Используем стандартные головы.");
                     }
                 }
                 
@@ -59,12 +59,12 @@ public class CMISkinUtil {
                 } catch (NoSuchMethodException ignored) {}
                 
             } catch (Exception e) {
-                AdvancedChat.getInstance().getLogger().warning("Ошибка инициализации CMI SkinManager: " + e.getMessage());
+                Lovechat.getInstance().getLogger().warning("Ошибка инициализации CMI SkinManager: " + e.getMessage());
                 cmiEnabled = false;
             }
         } else {
             cmiEnabled = false;
-            AdvancedChat.getInstance().getLogger().info("CMI не найден. Будут использоваться стандартные головы.");
+            Lovechat.getInstance().getLogger().info("CMI не найден. Будут использоваться стандартные головы.");
         }
     }
 
@@ -86,7 +86,7 @@ public class CMISkinUtil {
                         return head;
                     }
                 } catch (Exception e) {
-                    AdvancedChat.getInstance().getLogger().warning("Ошибка при установке текстуры CMI: " + e.getMessage());
+                    Lovechat.getInstance().getLogger().warning("Ошибка при установке текстуры CMI: " + e.getMessage());
                 }
             }
         }
@@ -184,7 +184,7 @@ public class CMISkinUtil {
             }
         } catch (Exception e) {
             // Тихая ошибка - не спамить в консоль
-            // AdvancedChat.getInstance().getLogger().warning("Ошибка получения скина CMI: " + e.getMessage());
+            // Lovechat.getInstance().getLogger().warning("Ошибка получения скина CMI: " + e.getMessage());
         }
 
         return null;
@@ -509,7 +509,7 @@ public class CMISkinUtil {
 
     private static void logSkinDebug(String source, UUID uuid, String playerName, SkinProperty prop) {
         try {
-            if (!AdvancedChat.getInstance().getConfig().getBoolean("general.debug", false)) return;
+            if (!Lovechat.getInstance().getConfig().getBoolean("general.debug", false)) return;
         } catch (Exception ignored) {
             return;
         }
@@ -527,7 +527,7 @@ public class CMISkinUtil {
             String decoded = tryDecodeBase64(value);
             valueKind = (decoded != null && decoded.contains("\"textures\"")) ? "base64" : "unknown";
         }
-        AdvancedChat.getInstance().getLogger().info(
+        Lovechat.getInstance().getLogger().info(
                 "[SkinDebug] source=" + source
                         + " player=" + (playerName != null ? playerName : "null")
                         + " uuid=" + uuid
@@ -539,12 +539,12 @@ public class CMISkinUtil {
 
     private static void logSkinDebugMiss(String source, UUID uuid, String playerName, Object skinObj) {
         try {
-            if (!AdvancedChat.getInstance().getConfig().getBoolean("general.debug", false)) return;
+            if (!Lovechat.getInstance().getConfig().getBoolean("general.debug", false)) return;
         } catch (Exception ignored) {
             return;
         }
         String skinClass = (skinObj != null) ? skinObj.getClass().getName() : "null";
-        AdvancedChat.getInstance().getLogger().info(
+        Lovechat.getInstance().getLogger().info(
                 "[SkinDebug] source=" + source
                         + " player=" + (playerName != null ? playerName : "null")
                         + " uuid=" + uuid
@@ -601,7 +601,7 @@ public class CMISkinUtil {
                             .get("url")
                             .getAsString();
                 } catch (Exception e) {
-                    AdvancedChat.getInstance().getLogger().warning("Ошибка получения URL скина: " + e.getMessage());
+                    Lovechat.getInstance().getLogger().warning("Ошибка получения URL скина: " + e.getMessage());
                 }
             }
         }

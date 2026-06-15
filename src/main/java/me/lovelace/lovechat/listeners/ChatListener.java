@@ -1,9 +1,9 @@
-package me.lovelace.advancedChat.listeners;
+package me.lovelace.lovechat.listeners;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
-import me.lovelace.advancedChat.AdvancedChat;
-import me.lovelace.advancedChat.managers.ChatBubbleManager;
+import me.lovelace.lovechat.Lovechat;
+import me.lovelace.lovechat.managers.ChatBubbleManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -23,19 +23,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import me.lovelace.advancedChat.api.AdvancedChatAPI.AdvancedChatMessageEvent;
-import me.lovelace.advancedChat.api.AdvancedChatAPI.AdvancedChatMentionEvent;
+import me.lovelace.lovechat.api.LovechatAPI.LovechatMessageEvent;
+import me.lovelace.lovechat.api.LovechatAPI.LovechatMentionEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import me.lovelace.advancedChat.depends.HeadComponentUtil;
+import me.lovelace.lovechat.depends.HeadComponentUtil;
 
 @SuppressWarnings({"unused", "UnsubstitutedExpression", "HttpUrlsUsage", "DuplicatedCode"})
 public class ChatListener implements Listener {
-    private final AdvancedChat plugin;
+    private final Lovechat plugin;
     private final MiniMessage miniMessage;
     private final ChatBubbleManager chatBubbleManager;
 
@@ -45,7 +45,7 @@ public class ChatListener implements Listener {
     private final Map<UUID, Long> staffCooldowns = new ConcurrentHashMap<>();
     private final Map<UUID, Long> everyoneCooldowns = new ConcurrentHashMap<>();
 
-    public ChatListener(@NotNull AdvancedChat plugin) {
+    public ChatListener(@NotNull Lovechat plugin) {
         this.plugin = plugin;
         this.miniMessage = MiniMessage.miniMessage();
         this.chatBubbleManager = plugin.getChatBubbleManager();
@@ -88,7 +88,7 @@ public class ChatListener implements Listener {
         String rawMessage = PlainTextComponentSerializer.plainText().serialize(incomingMessageComponent);
         boolean useIncomingComponent = !isPlainTextComponent(incomingMessageComponent, rawMessage);
 
-        AdvancedChat.EditSession session = plugin.getEditSession(player.getUniqueId());
+        Lovechat.EditSession session = plugin.getEditSession(player.getUniqueId());
         if (session != null) {
             event.setCancelled(true);
             if (rawMessage.equalsIgnoreCase("cancel")) {
@@ -119,7 +119,7 @@ public class ChatListener implements Listener {
             }
         }
 
-        AdvancedChatMessageEvent apiEvent = new AdvancedChatMessageEvent(player, rawMessage, incomingMessageComponent, activeChannel);
+        LovechatMessageEvent apiEvent = new LovechatMessageEvent(player, rawMessage, incomingMessageComponent, activeChannel);
         Bukkit.getPluginManager().callEvent(apiEvent);
         if (apiEvent.isCancelled()) return;
 
@@ -160,7 +160,7 @@ public class ChatListener implements Listener {
                         Key soundKey1 = Key.key(soundNameStr.contains(":") ? soundNameStr : "minecraft:" + soundNameStr.toLowerCase(Locale.ROOT));
 
                         for (Player p : Bukkit.getOnlinePlayers()) {
-                            if (p.hasPermission(plugin.getConfig().getString("staff-notifications.permission-receive", "advancedchat.staff.receive"))) {
+                            if (p.hasPermission(plugin.getConfig().getString("staff-notifications.permission-receive", "lovechat.staff.receive"))) {
                                 p.sendMessage(staffAlert);
                                 try {
                                     p.playSound(Sound.sound(soundKey1, Sound.Source.MASTER, 1f, 1f));
@@ -180,7 +180,7 @@ public class ChatListener implements Listener {
 
         if (useApiComponent) {
             contentComponent = apiEvent.getMessageComponent();
-        } else if (plugin.getConfig().getBoolean("chat.chat-json", true) && player.hasPermission(plugin.getConfig().getString("chat.permission", "advancedchat.json"))
+        } else if (plugin.getConfig().getBoolean("chat.chat-json", true) && player.hasPermission(plugin.getConfig().getString("chat.permission", "lovechat.json"))
                 && message.trim().startsWith("{") && message.trim().endsWith("}")) {
             try {
                 contentComponent = GsonComponentSerializer.gson().deserialize(message);
@@ -188,11 +188,11 @@ public class ChatListener implements Listener {
                 contentComponent = miniMessage.deserialize("<red>[Ошибка JSON форматирования]</red> " + miniMessage.escapeTags(message));
             }
         } else {
-            if (!player.hasPermission("advancedchat.color")) {
+            if (!player.hasPermission("lovechat.color")) {
                 message = miniMessage.escapeTags(message);
             }
 
-            if (plugin.getConfig().getBoolean("links.enabled", true) && player.hasPermission(plugin.getConfig().getString("links.permission", "advancedchat.links"))) {
+            if (plugin.getConfig().getBoolean("links.enabled", true) && player.hasPermission(plugin.getConfig().getString("links.permission", "lovechat.links"))) {
                 Matcher linkMatcher = linkPattern.matcher(message);
                 StringBuilder linkSb = new StringBuilder();
                 String linkFormat = plugin.getConfig().getString("links.format", "<hover:show_text:'<gray>Нажмите для перехода:<br><white>%link%</white>'><click:open_url:'%url%'><aqua><b>[Ссылка]</b></aqua></click></hover>");
@@ -233,13 +233,13 @@ public class ChatListener implements Listener {
                     }
 
                     if (isEveryoneMention) {
-                        if (player.hasPermission("advancedchat.mention.everyone")) {
+                        if (player.hasPermission("lovechat.mention.everyone")) {
 
                             long lastTime = everyoneCooldowns.getOrDefault(player.getUniqueId(), 0L);
                             int cdSeconds = plugin.getConfig().getInt("mentions.everyone-cooldown", 300);
                             long timeLeft = (lastTime + (cdSeconds * 1000L)) - System.currentTimeMillis();
 
-                            if (timeLeft > 0 && !player.hasPermission("advancedchat.mention.everyone.bypass")) {
+                            if (timeLeft > 0 && !player.hasPermission("lovechat.mention.everyone.bypass")) {
                                 plugin.sendMessage(player, "mention-everyone-cooldown", "{time}", String.valueOf(timeLeft / 1000));
                                 m.appendReplacement(sb, "@" + name);
                                 continue;
@@ -287,9 +287,9 @@ public class ChatListener implements Listener {
                         }
                     }
 
-                    if (target != null && player.hasPermission(plugin.getConfig().getString("mentions.permission-mention", "advancedchat.mention"))) {
+                    if (target != null && player.hasPermission(plugin.getConfig().getString("mentions.permission-mention", "lovechat.mention"))) {
                         mentionedPlayers.add(target);
-                        Bukkit.getPluginManager().callEvent(new AdvancedChatMentionEvent(player, target));
+                        Bukkit.getPluginManager().callEvent(new LovechatMentionEvent(player, target));
                         m.appendReplacement(sb, "<mention_" + target.getName() + ">");
                     } else {
                         m.appendReplacement(sb, "@" + name);
@@ -303,7 +303,7 @@ public class ChatListener implements Listener {
 
         int messageId = plugin.getNextMessageId();
         UUID senderUuid = player.getUniqueId();
-        plugin.getMessageDataCache().put(messageId, new AdvancedChat.MessageData(senderUuid, activeChannel, apiEvent.getMessage(), player.hasPermission("advancedchat.admin")));
+        plugin.getMessageDataCache().put(messageId, new Lovechat.MessageData(senderUuid, activeChannel, apiEvent.getMessage(), player.hasPermission("lovechat.admin")));
         plugin.setLastMessageId(player.getUniqueId(), messageId);
 
         plugin.getDatabaseManager().incrementMessageCount(player.getUniqueId());
@@ -334,8 +334,8 @@ public class ChatListener implements Listener {
 
         // Создаём компонент игрока: голова + имя с hover/click
         // Пытаемся получить кастомный скин из CMI
-        me.lovelace.advancedChat.depends.CMISkinUtil.SkinProperty skinProp =
-                me.lovelace.advancedChat.depends.CMISkinUtil.getSkinProperty(player);
+        me.lovelace.lovechat.depends.CMISkinUtil.SkinProperty skinProp =
+                me.lovelace.lovechat.depends.CMISkinUtil.getSkinProperty(player);
         String skinSignature = skinProp != null ? skinProp.signature() : null;
         Component headComponent = HeadComponentUtil.createHeadComponent(
                 player.getUniqueId(),
@@ -419,7 +419,7 @@ public class ChatListener implements Listener {
             }
         }
 
-        boolean senderIsAdmin = player.hasPermission("advancedchat.admin") && plugin.getConfig().getBoolean("ignore.admins-bypass", true);
+        boolean senderIsAdmin = player.hasPermission("lovechat.admin") && plugin.getConfig().getBoolean("ignore.admins-bypass", true);
         boolean isAdminChannel = "admin".equals(activeChannel);
 
         // Генерация кнопок удаления/редактирования
@@ -440,7 +440,7 @@ public class ChatListener implements Listener {
             }
 
             // Игроки без пермиссиона не должны видеть сообщения из админ-канала
-            if (isAdminChannel && !p.hasPermission("advancedchat.admin")) {
+            if (isAdminChannel && !p.hasPermission("lovechat.admin")) {
                 continue;
             }
 
@@ -458,7 +458,7 @@ public class ChatListener implements Listener {
 
             // Добавляем кнопки только автору сообщения или админам
             boolean isOwner = p.getUniqueId().equals(senderUuid);
-            boolean isAdmin = p.hasPermission("advancedchat.admin") || p.hasPermission("advancedchat.moderation");
+            boolean isAdmin = p.hasPermission("lovechat.admin") || p.hasPermission("lovechat.moderation");
 
             // Кнопки добавляются ПОСЛЕ сообщения
             if (isOwner || isAdmin) {

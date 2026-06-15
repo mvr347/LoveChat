@@ -1,5 +1,5 @@
 # ========================================== #
-#       AdvancedChat Messages Configuration  #
+#       Lovechat Messages Configuration  #
 #          Version 2.5                       #
 # ========================================== #
 # Все текстовые сообщения плагина
@@ -7,7 +7,7 @@
 # ========================================== #
 
 # Префикс плагина (используется во всех сообщениях)
-prefix: "<dark_gray>[<aqua>AdvancedChat</aqua>]</dark_gray> "
+prefix: "<dark_gray>[<aqua>Lovechat</aqua>]</dark_gray> "
 
 # ========================================== #
 #           ОБЩИЕ СООБЩЕНИЯ                  #
@@ -17,7 +17,7 @@ reload-success: "<green>Конфигурация успешно перезагр
 reload-messages-success: "<green>Сообщения успешно перезагружены!</green>"
 player-not-found: "<red>Игрок не найден!</red>"
 player-only: "<red>Эта команда только для игроков!</red>"
-world-disabled: "<red>AdvancedChat отключен в этом мире.</red>"
+world-disabled: "<red>Lovechat отключен в этом мире.</red>"
 
 # ========================================== #
 #         КАНАЛЫ ЧАТА                        #
@@ -63,7 +63,7 @@ mention-everyone-cooldown: "<red>Использование @everyone досту
 # ========================================== #
 #      КОМАНДЫ (HELP)                        #
 # ========================================== #
-help-header: "<dark_gray>========== <aqua>AdvancedChat Помощь</aqua> ==========</dark_gray>"
+help-header: "<dark_gray>========== <aqua>Lovechat Помощь</aqua> ==========</dark_gray>"
 help-reload: "<aqua>/chat reload</aqua> <gray>- Перезагрузить конфигурацию</gray>"
 help-chat: "<aqua>/chat <канал></aqua> <gray>- Переключить канал чата</gray>"
 help-silent: "<aqua>/silent</aqua> <gray>- Скрытый режим (сообщения не видны другим)</gray>"

@@ -1,9 +1,9 @@
-package me.lovelace.advancedChat.api;
+package me.lovelace.lovechat.api;
 
-import me.lovelace.advancedChat.AdvancedChat;
-import me.lovelace.advancedChat.managers.ChatBubbleManager;
-import me.lovelace.advancedChat.managers.DatabaseManager;
-import me.lovelace.advancedChat.depends.CMISkinUtil;
+import me.lovelace.lovechat.Lovechat;
+import me.lovelace.lovechat.managers.ChatBubbleManager;
+import me.lovelace.lovechat.managers.DatabaseManager;
+import me.lovelace.lovechat.depends.CMISkinUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.command.CommandSender;
@@ -17,9 +17,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * <h1>AdvancedChat API</h1>
+ * <h1>Lovechat API</h1>
  *
- * <p>Основной класс для доступа к API плагина AdvancedChat.</p>
+ * <p>Основной класс для доступа к API плагина Lovechat.</p>
  *
  * <h2>Содержание:</h2>
  * <ul>
@@ -35,14 +35,14 @@ import java.util.concurrent.CompletableFuture;
  * <a id="getting-started"></a>
  * <h2>Начало работы</h2>
  *
- * <p>Для получения экземпляра AdvancedChat используйте:</p>
+ * <p>Для получения экземпляра Lovechat используйте:</p>
  * <pre>{@code
- * AdvancedChat chat = AdvancedChat.getInstance();
+ * Lovechat chat = Lovechat.getInstance();
  * }</pre>
  *
- * <p>Или через AdvancedChatAPI:</p>
+ * <p>Или через LovechatAPI:</p>
  * <pre>{@code
- * AdvancedChat chat = AdvancedChatAPI.getAdvancedChat();
+ * Lovechat chat = LovechatAPI.getLovechat();
  * }</pre>
  *
  * @author Lovelace
@@ -50,33 +50,33 @@ import java.util.concurrent.CompletableFuture;
  * @since 1.0
  */
 @SuppressWarnings({"unused", "InstantiationOfUtilityClass"})
-public class AdvancedChatAPI {
+public class LovechatAPI {
 
-    private static AdvancedChatAPI instance;
+    private static LovechatAPI instance;
 
-    private AdvancedChatAPI() {
+    private LovechatAPI() {
         // Приватный конструктор для синглтона
     }
 
     /**
-     * Получить экземпляр AdvancedChatAPI
-     * @return AdvancedChatAPI instance
+     * Получить экземпляр LovechatAPI
+     * @return LovechatAPI instance
      */
     @NotNull
-    public static AdvancedChatAPI getInstance() {
+    public static LovechatAPI getInstance() {
         if (instance == null) {
-            instance = new AdvancedChatAPI();
+            instance = new LovechatAPI();
         }
         return instance;
     }
 
     /**
-     * Получить экземпляр AdvancedChat
-     * @return AdvancedChat instance
+     * Получить экземпляр Lovechat
+     * @return Lovechat instance
      */
     @NotNull
-    public static AdvancedChat getAdvancedChat() {
-        return AdvancedChat.getInstance();
+    public static Lovechat getLovechat() {
+        return Lovechat.getInstance();
     }
 
     /**
@@ -85,7 +85,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static ChatBubbleManager getBubbleManager() {
-        return AdvancedChat.getInstance().getChatBubbleManager();
+        return Lovechat.getInstance().getChatBubbleManager();
     }
 
     /**
@@ -94,7 +94,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static DatabaseManager getDatabaseManager() {
-        return AdvancedChat.getInstance().getDatabaseManager();
+        return Lovechat.getInstance().getDatabaseManager();
     }
 
     /**
@@ -119,7 +119,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static String getDefaultChannel(@NotNull UUID uuid) {
-        return AdvancedChat.getInstance().getDefaultChannel(uuid);
+        return Lovechat.getInstance().getDefaultChannel(uuid);
     }
 
     /**
@@ -128,7 +128,7 @@ public class AdvancedChatAPI {
      * @param channel Канал
      */
     public static void setDefaultChannel(@NotNull UUID uuid, @NotNull String channel) {
-        AdvancedChat.getInstance().setDefaultChannel(uuid, channel);
+        Lovechat.getInstance().setDefaultChannel(uuid, channel);
     }
 
     /**
@@ -138,7 +138,7 @@ public class AdvancedChatAPI {
      */
     @Nullable
     public static Integer getLastMessageId(@NotNull UUID uuid) {
-        return AdvancedChat.getInstance().getLastMessageId(uuid);
+        return Lovechat.getInstance().getLastMessageId(uuid);
     }
 
     /**
@@ -147,7 +147,7 @@ public class AdvancedChatAPI {
      * @return true если silent включён
      */
     public static boolean isSilent(@NotNull UUID uuid) {
-        return AdvancedChat.getInstance().isSilent(uuid);
+        return Lovechat.getInstance().isSilent(uuid);
     }
 
     /**
@@ -155,7 +155,7 @@ public class AdvancedChatAPI {
      * @param uuid UUID игрока
      */
     public static void toggleSilent(@NotNull UUID uuid) {
-        AdvancedChat.getInstance().toggleSilent(uuid);
+        Lovechat.getInstance().toggleSilent(uuid);
     }
 
     /**
@@ -164,7 +164,7 @@ public class AdvancedChatAPI {
      * @return true если spy включён
      */
     public static boolean isSpy(@NotNull UUID uuid) {
-        return AdvancedChat.getInstance().isSpy(uuid);
+        return Lovechat.getInstance().isSpy(uuid);
     }
 
     /**
@@ -172,7 +172,7 @@ public class AdvancedChatAPI {
      * @param uuid UUID игрока
      */
     public static void toggleSpy(@NotNull UUID uuid) {
-        AdvancedChat.getInstance().toggleSpy(uuid);
+        Lovechat.getInstance().toggleSpy(uuid);
     }
 
     /**
@@ -182,7 +182,7 @@ public class AdvancedChatAPI {
      * @return true если игнорирует
      */
     public static boolean isIgnoring(@NotNull UUID ignorerUUID, @NotNull UUID ignoredUUID) {
-        return AdvancedChat.getInstance().isIgnoring(ignorerUUID, ignoredUUID);
+        return Lovechat.getInstance().isIgnoring(ignorerUUID, ignoredUUID);
     }
 
     /**
@@ -191,7 +191,7 @@ public class AdvancedChatAPI {
      * @param ignoredUUID Кого игнорируют
      */
     public static void toggleIgnore(@NotNull UUID ignorerUUID, @NotNull UUID ignoredUUID) {
-        AdvancedChat.getInstance().toggleIgnore(ignorerUUID, ignoredUUID);
+        Lovechat.getInstance().toggleIgnore(ignorerUUID, ignoredUUID);
     }
 
     /**
@@ -200,7 +200,7 @@ public class AdvancedChatAPI {
      * @param keepStaff Сохранить staff bar
      */
     public static void clearChatForPlayer(@NotNull Player player, boolean keepStaff) {
-        AdvancedChat.getInstance().clearChatForPlayer(player, keepStaff);
+        Lovechat.getInstance().clearChatForPlayer(player, keepStaff);
     }
 
     // ========================================== //
@@ -289,7 +289,7 @@ public class AdvancedChatAPI {
      * @param channel Канал
      */
     public static void showBubble(@NotNull Player player, @NotNull String message, @NotNull String channel) {
-        AdvancedChat.getInstance().getChatBubbleManager().showBubble(player, message, channel);
+        Lovechat.getInstance().getChatBubbleManager().showBubble(player, message, channel);
     }
 
     /**
@@ -297,14 +297,14 @@ public class AdvancedChatAPI {
      * @param uuid UUID игрока
      */
     public static void removeBubble(@NotNull UUID uuid) {
-        AdvancedChat.getInstance().getChatBubbleManager().removeBubble(uuid);
+        Lovechat.getInstance().getChatBubbleManager().removeBubble(uuid);
     }
 
     /**
      * Очистить все голограммы
      */
     public static void clearAllBubbles() {
-        AdvancedChat.getInstance().getChatBubbleManager().clearAll();
+        Lovechat.getInstance().getChatBubbleManager().clearAll();
     }
 
     /**
@@ -312,7 +312,7 @@ public class AdvancedChatAPI {
      * @return true если включены
      */
     public static boolean isBubblesEnabled() {
-        return AdvancedChat.getInstance().getChatBubbleManager().isEnabled();
+        return Lovechat.getInstance().getChatBubbleManager().isEnabled();
     }
 
     // ========================================== //
@@ -326,7 +326,7 @@ public class AdvancedChatAPI {
      * @param messageText Текст сообщения
      */
     public static void logMessage(int messageId, @NotNull UUID playerUUID, @NotNull String messageText) {
-        AdvancedChat.getInstance().getDatabaseManager().logMessage(messageId, playerUUID, messageText);
+        Lovechat.getInstance().getDatabaseManager().logMessage(messageId, playerUUID, messageText);
     }
 
     /**
@@ -334,7 +334,7 @@ public class AdvancedChatAPI {
      * @param messageId ID сообщения
      */
     public static void deleteMessage(int messageId) {
-        AdvancedChat.getInstance().getDatabaseManager().deleteMessage(messageId);
+        Lovechat.getInstance().getDatabaseManager().deleteMessage(messageId);
     }
 
     /**
@@ -343,7 +343,7 @@ public class AdvancedChatAPI {
      * @param newText Новый текст
      */
     public static void editMessage(int messageId, @NotNull String newText) {
-        AdvancedChat.getInstance().getDatabaseManager().editMessage(messageId, newText);
+        Lovechat.getInstance().getDatabaseManager().editMessage(messageId, newText);
     }
 
     /**
@@ -352,7 +352,7 @@ public class AdvancedChatAPI {
      * @param newText Новый текст
      */
     public static void updateMessage(int messageId, @NotNull String newText) {
-        AdvancedChat.getInstance().getDatabaseManager().updateMessage(messageId, newText);
+        Lovechat.getInstance().getDatabaseManager().updateMessage(messageId, newText);
     }
 
     /**
@@ -362,7 +362,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static CompletableFuture<Integer> getMessageCount(@NotNull UUID playerUUID) {
-        return AdvancedChat.getInstance().getDatabaseManager().getMessageCount(playerUUID);
+        return Lovechat.getInstance().getDatabaseManager().getMessageCount(playerUUID);
     }
 
     /**
@@ -370,7 +370,7 @@ public class AdvancedChatAPI {
      * @param playerUUID UUID игрока
      */
     public static void incrementMessageCount(@NotNull UUID playerUUID) {
-        AdvancedChat.getInstance().getDatabaseManager().incrementMessageCount(playerUUID);
+        Lovechat.getInstance().getDatabaseManager().incrementMessageCount(playerUUID);
     }
 
     /**
@@ -379,7 +379,7 @@ public class AdvancedChatAPI {
      * @param targetUUID Кого игнорируют
      */
     public static void addIgnore(@NotNull UUID whoUUID, @NotNull UUID targetUUID) {
-        AdvancedChat.getInstance().getDatabaseManager().addIgnore(whoUUID, targetUUID);
+        Lovechat.getInstance().getDatabaseManager().addIgnore(whoUUID, targetUUID);
     }
 
     /**
@@ -388,7 +388,7 @@ public class AdvancedChatAPI {
      * @param targetUUID Кого игнорируют
      */
     public static void removeIgnore(@NotNull UUID whoUUID, @NotNull UUID targetUUID) {
-        AdvancedChat.getInstance().getDatabaseManager().removeIgnore(whoUUID, targetUUID);
+        Lovechat.getInstance().getDatabaseManager().removeIgnore(whoUUID, targetUUID);
     }
 
     /**
@@ -398,7 +398,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static CompletableFuture<Set<UUID>> getIgnores(@NotNull UUID playerUUID) {
-        return AdvancedChat.getInstance().getDatabaseManager().getIgnores(playerUUID);
+        return Lovechat.getInstance().getDatabaseManager().getIgnores(playerUUID);
     }
 
     /**
@@ -406,7 +406,7 @@ public class AdvancedChatAPI {
      * @param playerUUID UUID игрока
      */
     public static void clearIgnores(@NotNull UUID playerUUID) {
-        AdvancedChat.getInstance().getDatabaseManager().clearIgnores(playerUUID);
+        Lovechat.getInstance().getDatabaseManager().clearIgnores(playerUUID);
     }
 
     /**
@@ -415,7 +415,7 @@ public class AdvancedChatAPI {
      * @param channel Канал
      */
     public static void saveDefaultChannel(@NotNull UUID playerUUID, @NotNull String channel) {
-        AdvancedChat.getInstance().getDatabaseManager().saveDefaultChannel(playerUUID, channel);
+        Lovechat.getInstance().getDatabaseManager().saveDefaultChannel(playerUUID, channel);
     }
 
     /**
@@ -425,7 +425,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static CompletableFuture<String> getDefaultChannelAsync(@NotNull UUID playerUUID) {
-        return AdvancedChat.getInstance().getDatabaseManager().getDefaultChannel(playerUUID);
+        return Lovechat.getInstance().getDatabaseManager().getDefaultChannel(playerUUID);
     }
 
     /**
@@ -433,7 +433,7 @@ public class AdvancedChatAPI {
      * @param playerUUID UUID игрока
      */
     public static void clearDefaultChannel(@NotNull UUID playerUUID) {
-        AdvancedChat.getInstance().getDatabaseManager().clearDefaultChannel(playerUUID);
+        Lovechat.getInstance().getDatabaseManager().clearDefaultChannel(playerUUID);
     }
 
     /**
@@ -442,7 +442,7 @@ public class AdvancedChatAPI {
      * @param disabled Статус
      */
     public static void saveTagsDisabled(@NotNull UUID playerUUID, boolean disabled) {
-        AdvancedChat.getInstance().getDatabaseManager().saveTagsDisabled(playerUUID, disabled);
+        Lovechat.getInstance().getDatabaseManager().saveTagsDisabled(playerUUID, disabled);
     }
 
     /**
@@ -452,7 +452,7 @@ public class AdvancedChatAPI {
      */
     @NotNull
     public static CompletableFuture<Boolean> getTagsDisabledAsync(@NotNull UUID playerUUID) {
-        return AdvancedChat.getInstance().getDatabaseManager().getTagsDisabled(playerUUID);
+        return Lovechat.getInstance().getDatabaseManager().getTagsDisabled(playerUUID);
     }
 
     /**
@@ -460,14 +460,14 @@ public class AdvancedChatAPI {
      * @param playerUUID UUID игрока
      */
     public static void clearTagsDisabled(@NotNull UUID playerUUID) {
-        AdvancedChat.getInstance().getDatabaseManager().clearTagsDisabled(playerUUID);
+        Lovechat.getInstance().getDatabaseManager().clearTagsDisabled(playerUUID);
     }
 
     /**
      * Очистить все сообщения
      */
     public static void clearAllMessages() {
-        AdvancedChat.getInstance().getDatabaseManager().clearAllMessagesSync();
+        Lovechat.getInstance().getDatabaseManager().clearAllMessagesSync();
     }
 
     /**
@@ -475,19 +475,19 @@ public class AdvancedChatAPI {
      * @param olderThanMillis Время в миллисекундах
      */
     public static void cleanOldMessages(long olderThanMillis) {
-        AdvancedChat.getInstance().getDatabaseManager().cleanOldMessages(olderThanMillis);
+        Lovechat.getInstance().getDatabaseManager().cleanOldMessages(olderThanMillis);
     }
     /**
     //              EVENTS API                    //
     // ========================================== //
 
     @SuppressWarnings("unused")
-    public static class AdvancedChatDeleteEvent extends Event {
+    public static class LovechatDeleteEvent extends Event {
         private static final HandlerList HANDLERS = new HandlerList();
         private final int messageId;
         private final CommandSender deleter;
 
-        public AdvancedChatDeleteEvent(int messageId, CommandSender deleter) {
+        public LovechatDeleteEvent(int messageId, CommandSender deleter) {
             this.messageId = messageId;
             this.deleter = deleter;
         }
@@ -500,12 +500,12 @@ public class AdvancedChatAPI {
     }
 
     @SuppressWarnings("unused")
-    public static class AdvancedChatMentionEvent extends Event {
+    public static class LovechatMentionEvent extends Event {
         private static final HandlerList HANDLERS = new HandlerList();
         private final Player sender;
         private final Player mentioned;
 
-        public AdvancedChatMentionEvent(Player sender, Player mentioned) {
+        public LovechatMentionEvent(Player sender, Player mentioned) {
             super(true);
             this.sender = sender;
             this.mentioned = mentioned;
@@ -519,7 +519,7 @@ public class AdvancedChatAPI {
     }
 
     @SuppressWarnings("unused")
-    public static class AdvancedChatMessageEditEvent extends Event implements Cancellable {
+    public static class LovechatMessageEditEvent extends Event implements Cancellable {
         private static final HandlerList HANDLERS = new HandlerList();
         private final Player player;
         private final int messageId;
@@ -530,11 +530,11 @@ public class AdvancedChatAPI {
         private boolean newMessageComponentChanged;
         private boolean cancelled;
 
-        public AdvancedChatMessageEditEvent(Player player, int messageId, String oldMessage, String newMessage) {
+        public LovechatMessageEditEvent(Player player, int messageId, String oldMessage, String newMessage) {
             this(player, messageId, oldMessage, Component.text(oldMessage), newMessage, Component.text(newMessage));
         }
 
-        public AdvancedChatMessageEditEvent(Player player, int messageId, String oldMessage, Component oldMessageComponent, String newMessage, Component newMessageComponent) {
+        public LovechatMessageEditEvent(Player player, int messageId, String oldMessage, Component oldMessageComponent, String newMessage, Component newMessageComponent) {
             super(true);
             this.player = player;
             this.messageId = messageId;
@@ -570,7 +570,7 @@ public class AdvancedChatAPI {
     }
 
     @SuppressWarnings("unused")
-    public static class AdvancedChatMessageEvent extends Event implements Cancellable {
+    public static class LovechatMessageEvent extends Event implements Cancellable {
         private static final HandlerList HANDLERS = new HandlerList();
         private final Player player;
         private String message;
@@ -579,11 +579,11 @@ public class AdvancedChatAPI {
         private boolean messageComponentChanged;
         private boolean cancelled;
 
-        public AdvancedChatMessageEvent(Player player, String message, String channel) {
+        public LovechatMessageEvent(Player player, String message, String channel) {
             this(player, message, Component.text(message), channel);
         }
 
-        public AdvancedChatMessageEvent(Player player, String message, Component messageComponent, String channel) {
+        public LovechatMessageEvent(Player player, String message, Component messageComponent, String channel) {
             super(true);
             this.player = player;
             this.message = message;

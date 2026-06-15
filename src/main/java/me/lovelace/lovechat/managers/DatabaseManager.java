@@ -1,6 +1,6 @@
-package me.lovelace.advancedChat.managers;
+package me.lovelace.lovechat.managers;
 
-import me.lovelace.advancedChat.AdvancedChat;
+import me.lovelace.lovechat.Lovechat;
 
 import java.io.File;
 import java.sql.*;
@@ -10,21 +10,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Менеджер базы данных SQLite для AdvancedChat.
+ * Менеджер базы данных SQLite для Lovechat.
  * Обрабатывает все асинхронные операции с БД.
  * 
- * SQLite Database Manager for AdvancedChat.
+ * SQLite Database Manager for Lovechat.
  * Handles all async database operations.
  */
 @SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"})
 public class DatabaseManager {
-    private final AdvancedChat plugin;
+    private final Lovechat plugin;
     private Connection connection;
 
     // Выделенный поток для базы данных. Исключает Database Locked ошибки!
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
 
-    public DatabaseManager(AdvancedChat plugin) {
+    public DatabaseManager(Lovechat plugin) {
         this.plugin = plugin;
     }
 

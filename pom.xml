@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>me.lovelace</groupId>
-    <artifactId>AdvancedChat</artifactId>
-    <version>2.5</version>
+    <artifactId>Lovechat</artifactId>
+    <version>3.0</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -100,7 +100,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Built-By>AdvancedChat Team</Built-By>
+                            <Built-By>Lovelace</Built-By>
                             <Implementation-Version>${project.version}</Implementation-Version>
                         </manifestEntries>
                     </archive>

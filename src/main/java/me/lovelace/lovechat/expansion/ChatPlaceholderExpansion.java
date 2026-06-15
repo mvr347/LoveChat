@@ -1,19 +1,19 @@
-package me.lovelace.advancedChat.expansion;
+package me.lovelace.lovechat.expansion;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import me.lovelace.advancedChat.AdvancedChat;
+import me.lovelace.lovechat.Lovechat;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public class ChatPlaceholderExpansion extends PlaceholderExpansion {
-    private final AdvancedChat plugin;
+    private final Lovechat plugin;
 
-    public ChatPlaceholderExpansion(AdvancedChat plugin) { this.plugin = plugin; }
+    public ChatPlaceholderExpansion(Lovechat plugin) { this.plugin = plugin; }
 
-    @Override public @NotNull String getIdentifier() { return "advancedchat"; }
-    @Override public @NotNull String getAuthor() { return "AdvancedChat Team"; }
-    @Override public @NotNull String getVersion() { return "2.5"; }
+    @Override public @NotNull String getIdentifier() { return "lovechat"; }
+    @Override public @NotNull String getAuthor() { return "Lovelace"; }
+    @Override public @NotNull String getVersion() { return "3.0"; }
     @Override public boolean persist() { return true; }
 
     @Override public String onRequest(OfflinePlayer player, @NotNull String params) {
@@ -25,7 +25,7 @@ public class ChatPlaceholderExpansion extends PlaceholderExpansion {
             case "silent_mode": return onlinePlayer != null && plugin.isSilent(player.getUniqueId()) ? "true" : "false";
             case "spy_mode": return onlinePlayer != null && plugin.isSpy(player.getUniqueId()) ? "true" : "false";
             case "mentions_disabled": return onlinePlayer != null && plugin.hasTagsDisabled(player.getUniqueId()) ? "true" : "false";
-            case "version": return "2.5";
+            case "version": return "3.0";
             case "status": return "enabled";
             default:
         }
