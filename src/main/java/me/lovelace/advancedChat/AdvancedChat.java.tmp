@@ -135,6 +135,7 @@ public final class AdvancedChat extends JavaPlugin {
                 this,
                 task -> {
                     databaseManager.cleanOldMessages(deleteOlderThanMillis);
+                    databaseManager.cleanExpiredPinnedMessages().thenAccept(ignored -> {});
                     messageDataCache.cleanUp();
                     chatHistory.cleanUp();
                 },

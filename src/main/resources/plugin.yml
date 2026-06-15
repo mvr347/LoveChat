@@ -30,14 +30,6 @@ commands:
     description: Включить/выключить упоминания себя
   spy:
     description: Режим шпиона
-  pin:
-    description: Закрепить сообщение или текст
-    usage: "/pin <text или #message-id> [duration in seconds]"
-    aliases: [pinned]
-  poll:
-    description: Система голосований в чате
-    usage: "/poll create <вопрос> | <opt1> | <opt2> | ... | <opt6>"
-    aliases: [vote]
 permissions:
   advancedchat.admin:
     default: op
@@ -82,28 +74,6 @@ permissions:
     default: true
   chat.edit.admin:
     description: "Разрешает удалять и редактировать чужие сообщения"
-    default: op
-  # Pinned Messages permissions
-  advancedchat.pin.use:
-    default: true
-  advancedchat.pin.admin:
-    default: op
-  advancedchat.pin.bypass-limit:
-    default: op
-  advancedchat.pin.see:
-    default: true
-  advancedchat.pin.auto:
-    default: op
-  advancedchat.pin.bypass-duration:
-    default: op
-  # Poll System permissions
-  advancedchat.poll.create:
-    default: true
-  advancedchat.poll.vote:
-    default: true
-  advancedchat.poll.view:
-    default: true
-  advancedchat.poll.admin:
     default: op
   # Reactions permissions
   advancedchat.reaction.use:

@@ -317,100 +317,7 @@ chatbubbles:
     # Кулдаун между bubble (в секундах)
     cooldown: 5
 
-# ========================================== #
-#     PINNED MESSAGES (в чате)               #
-# ========================================== #
-pinned-messages:
-  enabled: true
-  # Максимум закреплённых сообщений
-  max-pinned: 1
-  # Формат закреплённого сообщения
-  format: "<bold><gold>[ЗАКРЕПЛЕНО]</gold></bold> <white><message></white>"
-  # Разрешение для закрепления
-  pin-permission: "advancedchat.pin"
-  # Разрешение для обхода лимита
-  bypass-limit-permission: "advancedchat.pin.bypass-limit"
-  # Разрешение для админ-закрепления
-  admin-permission: "advancedchat.pin.admin"
-  # Настройки BossBar
-  bossbar:
-    color: "BLUE"
-    overlay: "NOTCHED_10"
-    # Показывать прогресс на BossBar
-    show-progress: true
-  # Авто-закрепление
-  auto-pin:
-    enabled: false
-    keywords: ["alert", "warning", "announcement", "server", "ban", "тревога", "важно"]
-    duration: 60
-    # Разрешение для авто-закрепления
-    permission: "advancedchat.pin.auto"
-  # Уведомление о закреплении
-  notifications:
-    enabled: true
-    format: "<gold>Сообщение закреплено!</gold>"
-  # Время до истечения (в секундах, 0 = навсегда)
-  default-duration: 0
-  # Показывать время до истечения
   show-timer: true
-
-# ========================================== #
-#           POLL SYSTEM                      #
-# ========================================== #
-polls:
-  enabled: true
-  # Максимум вариантов в голосовании
-  max-options: 6
-  # Максимум активных голосований
-  max-active-polls: 1
-  # Длительность по умолчанию (в секундах)
-  default-duration: 300
-  # Кулдаун между созданиями (в секундах)
-  cooldown: 60
-  # Разрешение для создания голосований
-  create-permission: "advancedchat.poll.create"
-  # Разрешение для голосования
-  vote-permission: "advancedchat.poll.vote"
-  # Разрешение для обхода лимита
-  bypass-limit-permission: "advancedchat.poll.bypass-limit"
-  # Разрешение для обхода кулдауна
-  bypass-cooldown-permission: "advancedchat.poll.bypass-cooldown"
-  # Разрешение для завершения голосований
-  end-permission: "advancedchat.poll.end"
-  # Разрешение для просмотра результатов
-  results-permission: "advancedchat.poll.results"
-  # Форматы
-  formats:
-    # Формат вопроса
-    question: "<dark_gray>========== <aqua>Голосование #{id}</aqua> ==========</dark_gray><newline><white><b><question></b></white>"
-    # Формат варианта
-    option: "<gray>{index}. </gray><white><option></white> <dark_gray>- <hover:show_text:'<green>Голосовать</green>'><click:run_command:'/poll vote {id} {index}'><aqua>[Голосовать]</aqua></click></hover></dark_gray>"
-    # Формат результатов
-    results: "<dark_gray>========== <aqua>Результаты голосования #{id}</aqua> ==========</dark_gray><newline><white><b><question></b></white><newline><total_votes> голос(ов)</total_votes>"
-    # Формат варианта в результатах
-    result-option: "<gray>{index}. </gray><white><option></white> <dark_gray>- <green><votes> голос(ов)</green></dark_gray>"
-    # Формат завершения
-    ended: "<dark_gray>========== <aqua>Голосование #{id} завершено</aqua> ==========</dark_gray>"
-  # Уведомления
-  notifications:
-    # Показывать уведомление при создании
-    on-create: true
-    # Показывать уведомление при завершении
-    on-end: true
-    # Звук при голосовании
-    vote-sound: "UI_BUTTON_CLICK"
-  # Авто-завершение
-  auto-end:
-    enabled: true
-    # Завершать когда все проголосовали
-    when-all-voted: false
-    # Минимальный процент игроков для авто-завершения
-    min-players-percent: 50
-
-# ========================================== #
-#      РЕЖИМЫ (SPY, SILENT, TAGS)            #
-# ========================================== #
-modes:
   # Spy режим - видеть все каналы
   spy:
     enabled: true
@@ -468,8 +375,6 @@ commands:
   permissions:
     reload: "advancedchat.admin"
     clear: "advancedchat.clear"
-    pin: "advancedchat.pin"
-    poll: "advancedchat.poll"
     spy: "advancedchat.spy"
     silent: "advancedchat.silent"
 

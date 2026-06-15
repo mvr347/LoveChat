@@ -46,122 +46,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         boolean isSpyCmd = command.getName().equalsIgnoreCase("spy") || (isAchCmd && args.length >= 1 && args[0].equalsIgnoreCase("spy"));
         boolean isIgnoreCmd = command.getName().equalsIgnoreCase("ignorechat") || (isAchCmd && args.length >= 1 && (args[0].equalsIgnoreCase("ignore") || args[0].equalsIgnoreCase("ignorechat")));
         boolean isChatClearCmd = command.getName().equalsIgnoreCase("chatclear") || command.getName().equalsIgnoreCase("cc") || (isAchCmd && args.length >= 1 && (args[0].equalsIgnoreCase("chatclear") || args[0].equalsIgnoreCase("cc")));
-        boolean isPinCmd = command.getName().equalsIgnoreCase("pin");
-        boolean isPollCmd = command.getName().equalsIgnoreCase("poll");
-
-        // --- PIN COMMAND ---
-        if (isPinCmd && sender instanceof Player p) {
-            if (!p.hasPermission("advancedchat.pin.use")) {
-                plugin.sendMessage(p, "pin-no-permission");
-                return;
-            }
-            if (args.length == 0) {
-                plugin.sendMessage(p, "pin-usage");
-                return;
-            }
-            if (args[0].equalsIgnoreCase("remove") && p.hasPermission("advancedchat.pin.admin")) {
-                if (args.length < 2) {
-                    plugin.sendMessage(p, "pin-remove-usage");
-                    return;
-                }
-                try {
-                    int pinId = Integer.parseInt(args[1]);
-                    plugin.getPinnedMessageManager().unpinMessage(pinId);
-                } catch (NumberFormatException e) {
-                    plugin.sendMessage(p, "pin-invalid-id");
-                }
-                return;
-            }
-            if (args[0].equalsIgnoreCase("list")) {
-                plugin.getPinnedMessageManager().listPinned(p);
-                return;
-            }
-            if (args[0].equalsIgnoreCase("clear") && p.hasPermission("advancedchat.pin.admin")) {
-                plugin.getPinnedMessageManager().clearAll(p);
-                return;
-            }
-
-            StringBuilder text = new StringBuilder();
-            for (String arg : args) text.append(arg).append(" ");
-            int duration = 0;
-            if (args.length >= 2) {
-                try {
-                    String lastArg = args[args.length - 1];
-                    duration = Integer.parseInt(lastArg);
-                    text = new StringBuilder();
-                    for (int i = 0; i < args.length - 1; i++) text.append(args[i]).append(" ");
-                } catch (NumberFormatException ignored) {
-                    text = new StringBuilder();
-                    for (String arg : args) text.append(arg).append(" ");
-                }
-            }
-            plugin.getPinnedMessageManager().pinMessage(p, text.toString().trim(), duration);
-            return;
-        }
-
-        // --- POLL COMMAND ---
-        if (isPollCmd && sender instanceof Player p) {
-            if (args.length == 0) {
-                plugin.sendMessage(p, "poll-usage");
-                return;
-            }
-            String subCmd = args[0].toLowerCase();
-            if (subCmd.equalsIgnoreCase("create")) {
-                if (!p.hasPermission("advancedchat.poll.create")) {
-                    plugin.sendMessage(p, "poll-no-permission-create");
-                    return;
-                }
-                if (args.length < 2) {
-                    plugin.sendMessage(p, "poll-no-options");
-                    return;
-                }
-                String[] createArgs = new String[args.length - 1];
-                System.arraycopy(args, 1, createArgs, 0, args.length - 1);
-                int duration = 0; // По умолчанию без времени
-                plugin.getPollManager().createPoll(p, createArgs, duration);
-            } else if (subCmd.equalsIgnoreCase("vote")) {
-                if (!p.hasPermission("advancedchat.poll.vote")) {
-                    plugin.sendMessage(p, "poll-no-permission-vote");
-                    return;
-                }
-                if (args.length < 3) {
-                    plugin.sendMessage(p, "poll-vote-usage");
-                    return;
-                }
-                try {
-                    int pollId = Integer.parseInt(args[1]);
-                    int option = Integer.parseInt(args[2]);
-                    plugin.getPollManager().vote(p, pollId, option);
-                } catch (NumberFormatException e) {
-                    plugin.sendMessage(p, "poll-invalid-id");
-                }
-            } else if (subCmd.equalsIgnoreCase("end") && p.hasPermission("advancedchat.poll.admin")) {
-                if (args.length < 2) {
-                    plugin.sendMessage(p, "poll-end-usage");
-                    return;
-                }
-                try {
-                    int pollId = Integer.parseInt(args[1]);
-                    plugin.getPollManager().endPoll(pollId, p);
-                } catch (NumberFormatException e) {
-                    plugin.sendMessage(p, "poll-invalid-id");
-                }
-            } else if (subCmd.equalsIgnoreCase("results")) {
-                if (args.length < 2) {
-                    plugin.sendMessage(p, "poll-results-usage");
-                    return;
-                }
-                try {
-                    int pollId = Integer.parseInt(args[1]);
-                    plugin.getPollManager().showResults(p, pollId);
-                } catch (NumberFormatException e) {
-                    plugin.sendMessage(p, "poll-invalid-id");
-                }
-            } else {
-                plugin.sendMessage(p, "poll-usage");
-            }
-            return;
-        }
 
         // --- CHAT CLEAR ---
         if (isChatClearCmd) {
@@ -352,7 +236,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 int msgId = Integer.parseInt(args[0]);
                 AdvancedChat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
 
-                // Перевел права на стандартную модель, как с polls и pins
+                // Перевел права на стандартную модель, 
                 boolean isAdmin = sender.hasPermission("advancedchat.delete.admin") || sender.isOp();
 
                 if (data == null) {
@@ -417,8 +301,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                     plugin.reloadConfig();
                     plugin.registerDynamicChannelCommands();
                     plugin.getChatBubbleManager().loadConfig();
-                    plugin.getPinnedMessageManager().loadConfig();
-                    plugin.getPollManager().loadConfig();
                     plugin.sendMessage(sender, "reload-success");
                 } else if (type.equals("message") || type.equals("messages")) {
                     plugin.loadMessages();
@@ -428,8 +310,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                     plugin.loadMessages();
                     plugin.registerDynamicChannelCommands();
                     plugin.getChatBubbleManager().loadConfig();
-                    plugin.getPinnedMessageManager().loadConfig();
-                    plugin.getPollManager().loadConfig();
                     plugin.sendMessage(sender, "reload-success");
                 }
                 return;
@@ -524,25 +404,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         if (command.getName().equalsIgnoreCase("ignorechat")) {
             if (args.length == 1) {
                 for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
-                return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
-            }
-        }
-
-        if (command.getName().equalsIgnoreCase("pin")) {
-            if (args.length == 1) {
-                completions.add("remove");
-                completions.add("list");
-                completions.add("clear");
-                return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
-            }
-        }
-
-        if (command.getName().equalsIgnoreCase("poll")) {
-            if (args.length == 1) {
-                completions.add("create");
-                completions.add("vote");
-                completions.add("end");
-                completions.add("results");
                 return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
             }
         }

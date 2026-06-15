@@ -64,7 +64,6 @@ public class ChatListener implements Listener {
             if (disabled) plugin.setTagsDisabled(uuid, true);
         });
 
-        plugin.getPinnedMessageManager().showActiveBars(player);
     }
 
     @EventHandler
@@ -485,7 +484,6 @@ public class ChatListener implements Listener {
             if (finalChannel != null) {
                 chatBubbleManager.showBubble(player, finalMessage, finalChannel);
             }
-            plugin.getPinnedMessageManager().checkAutoPin(player, finalMessage);
         });
     }
 

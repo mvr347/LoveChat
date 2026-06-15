@@ -3,8 +3,6 @@ package me.lovelace.advancedChat.api;
 import me.lovelace.advancedChat.AdvancedChat;
 import me.lovelace.advancedChat.managers.ChatBubbleManager;
 import me.lovelace.advancedChat.managers.DatabaseManager;
-import me.lovelace.advancedChat.managers.PinnedMessageManager;
-import me.lovelace.advancedChat.managers.PollManager;
 import me.lovelace.advancedChat.depends.CMISkinUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -16,8 +14,6 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -30,8 +26,6 @@ import java.util.concurrent.CompletableFuture;
  *     <li><a href="#getting-started">Начало работы</a></li>
  *     <li><a href="#chat-api">Chat API</a></li>
  *     <li><a href="#chat-bubbles">ChatBubbles API</a></li>
- *     <li><a href="#pinned-messages">Pinned Messages API</a></li>
- *     <li><a href="#polls">Polls API</a></li>
  *     <li><a href="#database">Database API</a></li>
  *     <li><a href="#cmi-skins">CMI Skin Support</a></li>
  *     <li><a href="#events">События (Events)</a></li>
@@ -104,23 +98,7 @@ public class AdvancedChatAPI {
     }
 
     /**
-     * Получить PinnedMessageManager
-     * @return PinnedMessageManager instance
-     */
-    @NotNull
-    public static PinnedMessageManager getPinnedMessageManager() {
-        return AdvancedChat.getInstance().getPinnedMessageManager();
-    }
-
     /**
-     * Получить PollManager
-     * @return PollManager instance
-     */
-    @NotNull
-    public static PollManager getPollManager() {
-        return AdvancedChat.getInstance().getPollManager();
-    }
-
     /**
      * Получить утилиту CMI скинов
      * @return CMISkinUtil class
@@ -338,159 +316,6 @@ public class AdvancedChatAPI {
     }
 
     // ========================================== //
-    //         PINNED MESSAGES API                //
-    // ========================================== //
-
-    /**
-     * Закрепить сообщение
-     * @param player Игрок
-     * @param message Сообщение
-     * @param duration Длительность в секундах (0 = навсегда)
-     * @return pinId закреплённого сообщения
-     */
-    public static int pinMessage(@NotNull Player player, @NotNull String message, int duration) {
-        return AdvancedChat.getInstance().getPinnedMessageManager().pinMessage(player, message, duration);
-    }
-
-    /**
-     * Закрепить существующее сообщение по ID
-     * @param player Игрок
-     * @param messageId ID сообщения
-     * @param duration Длительность в секундах (0 = навсегда)
-     * @return pinId закреплённого сообщения
-     */
-    public static int pinExistingMessage(@NotNull Player player, int messageId, int duration) {
-        return AdvancedChat.getInstance().getPinnedMessageManager().pinExistingMessage(player, messageId, duration);
-    }
-
-    /**
-     * Открепить сообщение
-     * @param pinId ID закреплённого сообщения
-     */
-    public static void unpinMessage(int pinId) {
-        AdvancedChat.getInstance().getPinnedMessageManager().unpinMessage(pinId);
-    }
-
-    /**
-     * Очистить все закреплённые сообщения игроку
-     * @param player Игрок
-     */
-    public static void clearAllPinned(@NotNull Player player) {
-        AdvancedChat.getInstance().getPinnedMessageManager().clearAllPinned(player);
-    }
-
-    /**
-     * Показать список закреплённых
-     * @param player Игрок
-     */
-    public static void showPinnedList(@NotNull Player player) {
-        AdvancedChat.getInstance().getPinnedMessageManager().showPinnedList(player);
-    }
-
-    /**
-     * Проверить авто-закрепление
-     * @param player Игрок
-     * @param message Сообщение
-     */
-    public static void checkAutoPin(@NotNull Player player, @NotNull String message) {
-        AdvancedChat.getInstance().getPinnedMessageManager().checkAutoPin(player, message);
-    }
-
-    /**
-     * Показать BossBar закреплённых сообщений игроку
-     * @param player Игрок
-     */
-    public static void showActiveBars(@NotNull Player player) {
-        AdvancedChat.getInstance().getPinnedMessageManager().showActiveBars(player);
-    }
-
-    // ========================================== //
-    //              POLLS API                     //
-    // ========================================== //
-
-    /**
-     * Создать голосование
-     * @param player Игрок
-     * @param options Массив вариантов (первый элемент - вопрос)
-     * @param duration Длительность в секундах
-     */
-    public static void createPoll(@NotNull Player player, @NotNull String[] options, int duration) {
-        AdvancedChat.getInstance().getPollManager().createPoll(player, options, duration);
-    }
-
-    /**
-     * Проголосовать
-     * @param player Игрок
-     * @param pollId ID голосования
-     * @param optionIndex Индекс варианта (начинается с 1)
-     */
-    public static void vote(@NotNull Player player, int pollId, int optionIndex) {
-        AdvancedChat.getInstance().getPollManager().vote(player, pollId, optionIndex);
-    }
-
-    /**
-     * Завершить голосование
-     * @param player Игрок
-     * @param pollId ID голосования
-     */
-    public static void endPoll(@NotNull Player player, int pollId) {
-        AdvancedChat.getInstance().getPollManager().endPoll(player, pollId);
-    }
-
-    /**
-     * Показать результаты голосования
-     * @param player Игрок
-     * @param pollId ID голосования
-     */
-    public static void showResults(@NotNull Player player, int pollId) {
-        AdvancedChat.getInstance().getPollManager().showResults(player, pollId);
-    }
-
-    /**
-     * Показать активное голосование
-     * @param player Игрок
-     * @param pollId ID голосования
-     */
-    public static void showPoll(@NotNull Player player, int pollId) {
-        AdvancedChat.getInstance().getPollManager().showPoll(player, pollId);
-    }
-
-    /**
-     * Получить общее количество голосов
-     * @param pollId ID голосования
-     * @return Количество голосов
-     */
-    public static int getTotalVotes(int pollId) {
-        return AdvancedChat.getInstance().getPollManager().getTotalVotes(pollId);
-    }
-
-    /**
-     * Получить количество голосов за вариант
-     * @param pollId ID голосования
-     * @param optionIndex Индекс варианта
-     * @return Количество голосов
-     */
-    public static int getOptionVotes(int pollId, int optionIndex) {
-        return AdvancedChat.getInstance().getPollManager().getOptionVotes(pollId, optionIndex);
-    }
-
-    /**
-     * Получить оставшееся время голосования
-     * @param pollId ID голосования
-     * @return Время в миллисекундах
-     */
-    public static long getTimeLeft(int pollId) {
-        return AdvancedChat.getInstance().getPollManager().getTimeLeft(pollId);
-    }
-
-    /**
-     * Очистить все голосования
-     */
-    public static void clearAllPolls() {
-        AdvancedChat.getInstance().getPollManager().clearAll();
-    }
-
-    // ========================================== //
     //            DATABASE API                    //
     // ========================================== //
 
@@ -652,23 +477,7 @@ public class AdvancedChatAPI {
     public static void cleanOldMessages(long olderThanMillis) {
         AdvancedChat.getInstance().getDatabaseManager().cleanOldMessages(olderThanMillis);
     }
-
     /**
-     * Очистить истёкшие закреплённые сообщения
-     */
-    public static void cleanExpiredPinnedMessages() {
-        AdvancedChat.getInstance().getDatabaseManager().cleanExpiredPinnedMessages().thenAccept(ignored -> {});
-    }
-
-    /**
-     * Очистить старые голосования
-     * @param olderThanSeconds Время в секундах
-     */
-    public static void cleanOldPolls(int olderThanSeconds) {
-        AdvancedChat.getInstance().getDatabaseManager().cleanOldPolls(olderThanSeconds).thenAccept(ignored -> {});
-    }
-
-    // ========================================== //
     //              EVENTS API                    //
     // ========================================== //
 
@@ -806,120 +615,6 @@ public class AdvancedChatAPI {
     }
 
     @SuppressWarnings("unused")
-    public static class AdvancedChatPinMessageEvent extends Event implements Cancellable {
-        private static final HandlerList HANDLERS = new HandlerList();
-        private final Player player;
-        private final int messageId;
-        private final String text;
-        private final long duration;
-        private boolean cancelled;
-        private int pinId;
-
-        public AdvancedChatPinMessageEvent(Player player, int messageId, String text, long duration) {
-            super(true);
-            this.player = player;
-            this.messageId = messageId;
-            this.text = text;
-            this.duration = duration;
-        }
-
-        public Player getPlayer() { return player; }
-        public int getMessageId() { return messageId; }
-        public String getText() { return text; }
-        public long getDuration() { return duration; }
-        public int getPinId() { return pinId; }
-        public void setPinId(int pinId) { this.pinId = pinId; }
-
-        @Override public boolean isCancelled() { return cancelled; }
-        @Override public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-        @NotNull @Override public HandlerList getHandlers() { return HANDLERS; }
-        public static HandlerList getHandlerList() { return HANDLERS; }
-    }
-
-    @SuppressWarnings("unused")
-    public static class AdvancedChatPollCreateEvent extends Event implements Cancellable {
-        private static final HandlerList HANDLERS = new HandlerList();
-        private final Player player;
-        private final String question;
-        private final String[] options;
-        private final long duration;
-        private boolean cancelled;
-        private int pollId;
-
-        public AdvancedChatPollCreateEvent(Player player, String question, String[] options, long duration) {
-            super(true);
-            this.player = player;
-            this.question = question;
-            this.options = options;
-            this.duration = duration;
-        }
-
-        public Player getPlayer() { return player; }
-        public String getQuestion() { return question; }
-        public String[] getOptions() { return options; }
-        public long getDuration() { return duration; }
-        public int getPollId() { return pollId; }
-        public void setPollId(int pollId) { this.pollId = pollId; }
-
-        @Override public boolean isCancelled() { return cancelled; }
-        @Override public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-        @NotNull @Override public HandlerList getHandlers() { return HANDLERS; }
-        public static HandlerList getHandlerList() { return HANDLERS; }
-    }
-
-    @SuppressWarnings("unused")
-    public static class AdvancedChatPollVoteEvent extends Event implements Cancellable {
-        private static final HandlerList HANDLERS = new HandlerList();
-        private final Player player;
-        private final int pollId;
-        private final int optionIndex;
-        private boolean cancelled;
-        private boolean isVoteChange;
-
-        public AdvancedChatPollVoteEvent(Player player, int pollId, int optionIndex) {
-            super(true);
-            this.player = player;
-            this.pollId = pollId;
-            this.optionIndex = optionIndex;
-        }
-
-        public Player getPlayer() { return player; }
-        public int getPollId() { return pollId; }
-        public int getOptionIndex() { return optionIndex; }
-        public boolean isVoteChange() { return isVoteChange; }
-        public void setVoteChange(boolean voteChange) { isVoteChange = voteChange; }
-
-        @Override public boolean isCancelled() { return cancelled; }
-        @Override public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-        @NotNull @Override public HandlerList getHandlers() { return HANDLERS; }
-        public static HandlerList getHandlerList() { return HANDLERS; }
-    }
-
-    @SuppressWarnings("unused")
-    public static class AdvancedChatPollEndEvent extends Event {
-        private static final HandlerList HANDLERS = new HandlerList();
-        private final int pollId;
-        private final String question;
-        private final int[] votes;
-        private final int totalVotes;
-
-        public AdvancedChatPollEndEvent(int pollId, String question, int[] votes, int totalVotes) {
-            super(true);
-            this.pollId = pollId;
-            this.question = question;
-            this.votes = votes;
-            this.totalVotes = totalVotes;
-        }
-
-        public int getPollId() { return pollId; }
-        public String getQuestion() { return question; }
-        public int[] getVotes() { return votes; }
-        public int getTotalVotes() { return totalVotes; }
-
-        @NotNull @Override public HandlerList getHandlers() { return HANDLERS; }
-        public static HandlerList getHandlerList() { return HANDLERS; }
-    }
-
     @SuppressWarnings("unused")
     public static class CMISkinChangeEvent extends Event {
         private static final HandlerList HANDLERS = new HandlerList();

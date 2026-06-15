@@ -59,43 +59,7 @@ ignore-removed: "<green>Вы удалили <aqua>{player}</aqua> из игно�
 mention-everyone-cooldown: "<red>Использование @everyone доступно через {time} сек.!</red>"
 
 # ========================================== #
-#      ЗАКРЕПЛЁННЫЕ СООБЩЕНИЯ                #
 # ========================================== #
-pin-no-permission: "<red>У вас нет прав для закрепления сообщений!</red>"
-pin-usage: "<yellow>Использование: /pin <ID сообщения></yellow>"
-pin-remove-usage: "<yellow>Использование: /pin remove <ID закрепления></yellow>"
-pin-invalid-id: "<red>Неверный ID сообщения!</red>"
-pin-replaced: "<yellow>Предыдущее закреплённое сообщение снято.</yellow>"
-pin-limit-reached: "<red>Достигнут лимит закреплённых сообщений (макс. {max})!</red>"
-pin-success: "<green>Сообщение закреплено! ID закрепления: {id}</green>"
-pin-message-not-found: "<red>Сообщение с ID {id} не найдено!</red>"
-pin-message-cannot-pin: "<red>Это сообщение нельзя закрепить!</red>"
-pin-existing-success: "<green>Сообщение #{id} закреплено! ID закрепления: {pinId}</green>"
-pin-cleared: "<green>Все закреплённые сообщения сняты!</green>"
-pin-list-empty: "<yellow>Нет закреплённых сообщений.</yellow>"
-pin-expired: "<dark_gray>[Закреплено] <gray>Сообщение #{messageId} было автоматически откреплено (истёк срок).</gray></dark_gray>"
-
-# ========================================== #
-#      ГОЛОСОВАНИЯ (POLLS)                   #
-# ========================================== #
-polls-disabled: "<red>Система голосований отключена!</red>"
-poll-no-permission-create: "<red>У вас нет прав для создания голосований!</red>"
-poll-no-permission-vote: "<red>У вас нет прав для голосования!</red>"
-poll-no-options: "<red>Укажите варианты голосования!</red>"
-poll-cooldown: "<red>Голосования доступны раз в {time} сек.!</red>"
-poll-limit-reached: "<red>Достигнут лимит активных голосований (макс. {max})!</red>"
-poll-too-many-options: "<red>Слишком много вариантов! Максимум: {max}</red>"
-poll-created: "<green>Голосование создано! ID: {id}</green>"
-poll-vote-usage: "<yellow>Использование: /poll vote <ID> <вариант></yellow>"
-poll-invalid-id: "<red>Неверный ID голосования!</red>"
-poll-invalid-option: "<red>Неверный вариант! Выберите от 1 до {max}.</red>"
-poll-voted: "<green>Ваш голос учтён!</green>"
-poll-vote-changed: "<yellow>Ваш голос изменён!</yellow>"
-poll-end-usage: "<yellow>Использование: /poll end <ID></yellow>"
-poll-ended: "<green>Голосование #{id} завершено!</green>"
-poll-not-found: "<red>Голосование не найдено!</red>"
-poll-results-usage: "<yellow>Использование: /poll results <ID></yellow>"
-
 # ========================================== #
 #      КОМАНДЫ (HELP)                        #
 # ========================================== #
@@ -150,15 +114,4 @@ link-format: "<hover:show_text:'<gray>Нажмите для перехода:<br
 staff-notification-format: "<red>[Внимание]</red> <yellow>Игрок <player> просит помощи:</yellow> <gray><message></gray>"
 
 # ========================================== #
-#      ЗАКРЕПЛЁННЫЕ СООБЩЕНИЯ (форматы)      #
 # ========================================== #
-pinned-message-format: "<bold><gold>[ЗАКРЕПЛЕНО]</gold></bold> <white><message></white>"
-
-# ========================================== #
-#      ГОЛОСОВАНИЯ (форматы)                 #
-# ========================================== #
-poll-question-format: "<dark_gray>========== <aqua>Голосование #{id}</aqua> ==========</dark_gray><newline><white><b><question></b></white>"
-poll-option-format: "<gray>{index}. </gray><white><option></white> <dark_gray>- <hover:show_text:'<green>Голосовать</green>'><click:run_command:'/poll vote {id} {index}'><aqua>[Голосовать]</aqua></click></hover></dark_gray>"
-poll-results-format: "<dark_gray>========== <aqua>Результаты голосования #{id}</aqua> ==========</dark_gray><newline><white><b><question></b></white><newline><total_votes> голос(ов)</total_votes>"
-poll-result-option-format: "<gray>{index}. </gray><white><option></white> <dark_gray>- <green><votes> голос(ов)</green></dark_gray>"
-poll-ended-format: "<dark_gray>========== <aqua>Голосование #{id} завершено</aqua> ==========</dark_gray>"
