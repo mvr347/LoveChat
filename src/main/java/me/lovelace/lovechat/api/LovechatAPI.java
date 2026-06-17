@@ -477,7 +477,7 @@ public class LovechatAPI {
     public static void cleanOldMessages(long olderThanMillis) {
         Lovechat.getInstance().getDatabaseManager().cleanOldMessages(olderThanMillis);
     }
-    /**
+    // ========================================== //
     //              EVENTS API                    //
     // ========================================== //
 

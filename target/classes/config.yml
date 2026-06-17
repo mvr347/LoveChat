@@ -1,0 +1,392 @@
+# ========================================== #
+#       Lovechat Configuration           #
+#          Version 3.0                       #
+# ========================================== #
+# Основные настройки плагина
+# Текстовые сообщения находятся в messages.yml
+# ========================================== #
+
+# ========================================== #
+#           ОБЩИЕ НАСТРОЙКИ                  #
+# ========================================== #
+general:
+  # Включить плагин
+  enabled: true
+  # Режим отладки (логи в консоль)
+  debug: false
+  # Список миров, где плагин полностью отключен
+  # Пример: ["world_nether", "minigames"]
+  disabled-worlds: []
+
+# ========================================== #
+#           НАСТРОЙКИ ЧАТА                   #
+# ========================================== #
+chat:
+  # Формат сообщения по умолчанию
+  # <player> - имя игрока с головой, hover и click
+  # <delete_edit_buttons> - кнопки удаления/редактирования
+  default-format: "<delete_edit_buttons><hover:show_text:'<gray>Кликни для /msg <player>'><click:suggest_command:'/msg <player> '><player></click></hover>: <gradient:#FFAA00:#FF0000><message></gradient>"
+  # Формат для player-format (используется в некоторых местах)
+  player-format: "<player>"
+  # Отправлять сообщения в JSON формате (для продвинутого форматирования)
+  chat-json: true
+  # Разрешение для использования JSON формата
+  permission: "lovechat.json"
+  # Максимальная длина сообщения
+  max-length: 256
+  # Минимальная задержка между сообщениями (в секундах, 0 = отключено)
+  cooldown: 0
+  # Сообщение при превышении cooldown
+  cooldown-message: "<red>Подождите <yellow>{time}</yellow> сек. перед следующим сообщением!</red>"
+  # Блокировка сообщений в консоль
+  log-to-console: true
+  # Формат логирования в консоль
+  log-format: "[CHAT] <%player%> %message%"
+
+# ========================================== #
+#         НАСТРОЙКИ ОТОБРАЖЕНИЯ              #
+# ========================================== #
+colors:
+  # Автоматически продолжать градиенты
+  auto-continue: true
+  # Поддержка градиентов
+  gradient-support: true
+  # Разрешение для использования цветов
+  color-permission: "lovechat.color"
+  # Разрешение для использования градиентов
+  gradient-permission: "lovechat.gradient"
+  # Разрешение для использования форматов
+  format-permission: "lovechat.format"
+  # Hover эффекты при наведении на имя игрока
+  hover:
+    enable: true
+    # Текст при наведении (поддерживает PlaceholderAPI)
+    player-hover: "<gray>Убийств: %statistic_player_kills%\nКликни для информации!</gray>"
+    # Включить клик по имени игрока
+    player-click: true
+    # Включить JSON форматирование
+    enable-json: true
+    # Команды при клике
+    click-command:
+      - "/msg {player} 1"
+  # Каналы чата
+  channels:
+    local:
+      prefix: ""
+      radius: 200
+      format: "<delete_edit_buttons><gray>[L] </gray><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <white><message></white>"
+      permission: "lovechat.local"
+      command:
+        - local
+        - local chat
+      # Отдельный cooldown для канала (в секундах)
+      cooldown: 0
+      # Максимум сообщений в минуту (-1 = без ограничений)
+      max-per-minute: -1
+    global:
+      prefix: "!"
+      radius: -1
+      format: "<delete_edit_buttons><yellow>[G] </yellow><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <gradient:#FFAA00:#FF0000><message></gradient>"
+      permission: "lovechat.global"
+      command:
+        - global
+        - global chat
+      cooldown: 0
+      max-per-minute: -1
+    admin:
+      prefix: "adm"
+      radius: -1
+      format: "<delete_edit_buttons><red>[A] </red><hover:show_text:'<red>Администратор'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <red><message></red>"
+      permission: "lovechat.admin"
+      command:
+        - adm
+      cooldown: 0
+      max-per-minute: -1
+    # Пример дополнительного канала
+    #vip:
+    #  prefix: "$"
+    #  radius: -1
+    #  format: "<delete_edit_buttons><gold>[VIP] </gold><hover:show_text:'<gray>Кликни для /msg <player>'><click:suggest_command:'/msg <player> '><head:player:player></click></hover>: <gold><message></gold>"
+    #  permission: "lovechat.vip"
+    #  command:
+    #    - vip
+    #  cooldown: 0
+    #  min-level: 0
+    #  max-per-minute: 30
+
+# ========================================== #
+#      УДАЛЕНИЕ СООБЩЕНИЙ                    #
+# ========================================== #
+messagedelete:
+  enabled: true
+  prefix: "<dark_gray>[<red>x</red>]</dark_gray>"
+  # Полное удаление (замена текста вместо удаления)
+  full-delete: false
+  # Текст замены при полном удалении
+  replacement-text: "<gray><i>Сообщение было удалено</i></gray>"
+  # Разрешение для удаления своих сообщений
+  delete-permission: "lovechat.delete"
+  # Разрешение для удаления чужих сообщений
+  delete-others-permission: "lovechat.delete.others"
+  # Время для удаления своих сообщений (в секундах, 0 = без ограничений)
+  delete-time-limit: 0
+  # Удалять сообщения из базы данных
+  delete-from-database: true
+
+# ========================================== #
+#      РЕДАКТИРОВАНИЕ СООБЩЕНИЙ              #
+# ========================================== #
+messageedit:
+  enabled: true
+  prefix: "<yellow>[✎]</yellow>"
+  # Метка отредактированного сообщения
+  mark: " <dark_gray><i>(изм.)</i></dark_gray>"
+  # Разрешение для редактирования своих сообщений
+  edit-permission: "lovechat.edit"
+  # Разрешение для редактирования чужих сообщений
+  edit-others-permission: "lovechat.edit.others"
+  # Время для редактирования (в секундах, 0 = без ограничений)
+  edit-time-limit: 300
+  # Максимум редактирований одного сообщения
+  max-edits: 5
+  # Сохранять историю редактирований
+  save-history: true
+  # Максимум записей в истории
+  max-history: 10
+
+# ========================================== #
+#         ИГНОР ЛИСТ                          #
+# ========================================== #
+ignore:
+  enabled: true
+  # Админы обходят игнор
+  admins-bypass: true
+  # Разрешение для обхода игнора
+  bypass-permission: "lovechat.ignore.bypass"
+  # Максимум игроков в игнор-листе
+  max-ignored: 50
+  # Показывать сообщение при попытке написать игнорируемому
+  show-message: true
+  # Сообщение при игноре
+  ignore-message: "<gray>Игрок игнорирует вас.</gray>"
+
+# ========================================== #
+#      УПОМИНАНИЯ (MENTIONS)                 #
+# ========================================== #
+mentions:
+  enabled: true
+  # Кулдаун для @everyone (в секундах)
+  everyone-cooldown: 300
+  # Алиасы для @everyone
+  everyone-aliases: ["everyone", "all", "here", "все", "всем"]
+  # Разрешение для использования @everyone
+  everyone-permission: "lovechat.mention.everyone"
+  # Разрешение для обхода кулдауна @everyone
+  everyone-bypass-permission: "lovechat.mention.everyone.bypass"
+  # Формат упоминания для других игроков
+  format: "<gradient:#00FF00:#00AA00><b>@%player%</b></gradient>"
+  # Формат упоминания для цели
+  format-target: "<yellow><b>%player%</b></yellow>"
+  # Формат упоминания для остальных
+  format-others: "<green>%player%</green>"
+  # Звук при упоминании (или "NONE" для отключения)
+  sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+  # Громкость звука
+  sound-volume: 1.0
+  # Высота звука
+  sound-pitch: 1.0
+  # Сообщение в Action Bar
+  actionbar:
+    enabled: true
+    text: "<gold>Вас упомянули в чате!</gold>"
+  # Разрешение для упоминаний
+  permission-mention: "lovechat.mention"
+  # Блокировать упоминания оффлайн игроков
+  block-offline: false
+  # Максимум упоминаний в одном сообщении
+  max-mentions: 5
+
+# ========================================== #
+#         ССЫЛКИ                              #
+# ========================================== #
+links:
+  enabled: true
+  format: "<hover:show_text:'<gray>Нажмите для перехода:<br><white>%link%</white>'><click:open_url:'%url%'><aqua><b>[Ссылка]</b></aqua></click></hover>"
+  permission: "lovechat.links"
+  # Разрешение для отправки ссылок
+  send-permission: "lovechat.links.send"
+  # Блокировать ссылки для игроков без разрешения
+  block-without-permission: false
+  # Сообщение при блокировке ссылки
+  block-message: "<red>У вас нет прав для отправки ссылок!</red>"
+  # Авто-сокращение длинных ссылок
+  auto-shorten: false
+  # Максимальная длина ссылки перед сокращением
+  shorten-length: 50
+  # Чёрный список доменов
+  blacklisted-domains: ["spam.com", "virus.com"]
+  # Белый список доменов (если включён whitelist-mode)
+  whitelisted-domains: ["youtube.com", "twitch.tv"]
+  # Режим белого списка
+  whitelist-mode: false
+
+# ========================================== #
+#         БАЗА ДАННЫХ                         #
+# ========================================== #
+database:
+  enabled: true
+  file: "lovechat.db"
+  # Тип базы данных (sqlite)
+  type: "sqlite"
+  # Статистика игроков
+  player-stats: true
+  # Пользовательские настройки
+  custom-settings: true
+  # Авто-сохранение (в секундах)
+  auto-save: 300
+  # Резервное копирование БД
+  backup:
+    enabled: true
+    # Интервал резервного копирования (в часах)
+    interval: 24
+    # Максимум резервных копий
+    max-backups: 10
+
+# ========================================== #
+#      УВЕДОМЛЕНИЯ ПЕРСОНАЛУ                 #
+# ========================================== #
+staff-notifications:
+  enabled: true
+  # Ключевые слова для уведомлений
+  keywords: ["admin", "help", "staff", "админ", "админы"]
+  # Кулдаун между уведомлениями (в секундах)
+  cooldown: 60
+  # Разрешение для получения уведомлений
+  permission-receive: "lovechat.staff.receive"
+  # Разрешение для отправки уведомлений
+  permission-send: "lovechat.staff.notify"
+  # Формат уведомления
+  format: "<red>[Внимание]</red> <yellow>Игрок <player> просит помощи:</yellow> <gray><message></gray>"
+  # Звук уведомления
+  sound: "BLOCK_NOTE_BLOCK_PLING"
+  # Громкость звука
+  sound-volume: 1.0
+  # Показывать в Action Bar
+  actionbar:
+    enabled: true
+    text: "<red>Внимание!</red> <yellow>Игрок просит помощи!</yellow>"
+
+# ========================================== #
+#        CHAT BUBBLES (голограммы)           #
+# ========================================== #
+chatbubbles:
+  enabled: true
+  # Время отображения (в тиках, 20 тиков = 1 секунда)
+  display-time: 60
+  # Высота над головой игрока
+  height: 1.8
+  # Радиус проверки игроков nearby
+  check-radius: 40
+  # Формат сообщения в bubble
+  format: "<gradient:#00FF00:#00AA00><message></gradient>"
+  # Радиус видимости bubble
+  radius: 50
+  # Максимальная длина сообщения
+  max-length: 100
+  # Каналы, для которых разрешены bubble
+  allowed-channels:
+    - local
+    - global
+  # Показывать префикс канала
+  show-channel-prefix: false
+  # Разрешение для использования chatbubbles
+  permission: "lovechat.chatbubbles"
+  # Скрывать от игроков в режиме silent
+  hide-from-silent: true
+  # Анимация появления
+  animation:
+    enabled: true
+    # Тип анимации (fade, slide, scale)
+    type: "fade"
+    # Длительность анимации (в тиках)
+    duration: 10
+  # Ограничения
+  limits:
+    # Минимальный уровень
+    min-level: 0
+    # Кулдаун между bubble (в секундах)
+    cooldown: 5
+
+  show-timer: true
+  # Spy режим - видеть все каналы
+  spy:
+    enabled: true
+    permission: "lovechat.spy"
+    # Формат сообщения в spy режиме
+    format: "<dark_gray>[SPY] </dark_gray>"
+    # Показывать в Action Bar
+    actionbar: true
+  # Silent режим - скрытый режим
+  silent:
+    enabled: true
+    permission: "lovechat.silent"
+    # Блокировать упоминания в silent режиме
+    block-mentions: true
+    # Показывать сообщение при включении
+    notify: true
+  # Tag режим - отключение тегов
+  tags:
+    enabled: true
+    permission: "lovechat.tagtoggle"
+    # Разрешение для управления тегами других
+    others-permission: "lovechat.tagtoggle.others"
+
+# ========================================== #
+#      ИНТЕГРАЦИИ                            #
+# ========================================== #
+integrations:
+  # PlaceholderAPI
+  placeholderapi:
+    enabled: true
+    # Обновлять плейсхолдеры асинхронно
+    async: true
+  # CMI (для скинов)
+  cmi:
+    enabled: true
+    # Использовать скины из CMI
+    use-skins: true
+  # ProtocolLib
+  protocollib:
+    enabled: true
+
+# ========================================== #
+#      КОМАНДЫ                               #
+# ========================================== #
+commands:
+  # Префикс команд
+  prefix: "/chat"
+  # Алиасы команд
+  aliases:
+    ach: ["lovechat", "achat"]
+    channel: ["ch", "c"]
+    ignore: ["ig"]
+    chatclear: ["cc", "clearchat"]
+  # Разрешения для команд
+  permissions:
+    reload: "lovechat.admin"
+    clear: "lovechat.clear"
+    spy: "lovechat.spy"
+    silent: "lovechat.silent"
+
+# ========================================== #
+#      ПРОИЗВОЛЬНОЕ                          #
+# ========================================== #
+# Настройки для кастомных каналов
+custom-channels:
+  enabled: true
+  # Максимум кастомных каналов
+  max-channels: 10
+  # Разрешение для создания каналов
+  create-permission: "lovechat.channel.create"
+  # Разрешение для удаления каналов
+  delete-permission: "lovechat.channel.delete"

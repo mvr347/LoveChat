@@ -1,0 +1,89 @@
+name: Lovechat
+version: "3.0"
+main: me.lovelace.lovechat.Lovechat
+api-version: '1.21.11'
+softdepend: [PlaceholderAPI, CMI, ProtocolLib]
+libraries:
+  - "com.github.ben-manes.caffeine:caffeine:3.1.8"
+commands:
+  lovechat:
+    description: Основная команда плагия
+    aliases: [chat, lc]
+  channel:
+    description: Переключить канал чата
+    aliases: [ch, c]
+  ignorechat:
+    description: Игнорировать игрока
+    aliases: [ignore]
+  messagedelete:
+    description: Удалить сообщение
+    aliases: [md]
+  messageedit:
+    description: Редактировать сообщение
+    aliases: [medit]
+  silent:
+    description: Включить/выключить тихий режим
+  chatclear:
+    description: Очистка чата
+    aliases: [cc]
+  tagtoggle:
+    description: Включить/выключить упоминания себя
+  spy:
+    description: Режим шпиона
+permissions:
+  lovechat.admin:
+    default: op
+  lovechat.use:
+    default: true
+  lovechat.delete.own:
+    default: true
+  lovechat.delete:
+    default: true
+  lovechat.delete.others:
+    default: op
+  lovechat.delete.admin:
+    default: op
+  lovechat.edit:
+    default: true
+  lovechat.edit.others:
+    default: op
+  lovechat.edit.admin:
+    default: op
+  lovechat.mention:
+    default: true
+  lovechat.mention.everyone:
+    default: op
+  lovechat.mention.everyone.bypass:
+    default: op
+  lovechat.links:
+    default: true
+  lovechat.color:
+    default: true
+  lovechat.silent:
+    default: true
+  lovechat.tagtoggle:
+    default: op
+  lovechat.spy:
+    default: op
+  lovechat.clear.global:
+    default: op
+  lovechat.clear.console:
+    default: op
+  chat.edit:
+    description: "Разрешает удалять и редактировать свои сообщения"
+    default: true
+  chat.edit.admin:
+    description: "Разрешает удалять и редактировать чужие сообщения"
+    default: op
+  # Reactions permissions
+  lovechat.reaction.use:
+    default: true
+  lovechat.reaction.see:
+    default: true
+  lovechat.reaction.admin:
+    default: op
+  # Quote/Reply permissions
+  lovechat.quote.use:
+    default: true
+  lovechat.quote.see:
+    default: true
