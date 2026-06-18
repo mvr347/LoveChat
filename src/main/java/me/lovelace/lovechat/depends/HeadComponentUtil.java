@@ -2,6 +2,7 @@ package me.lovelace.lovechat.depends;
 
 import net.kyori.adventure.text.Component;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -9,128 +10,149 @@ import java.util.UUID;
 /**
  * Создает компонент головы игрока через NMS PlayerSprite (1.21.9+).
  * Использует reflection, чтобы не зависеть от NMS на этапе компиляции.
+ * Все Class/Method/Constructor lookups идут через {@link ReflectionCache},
+ * поэтому реальный reflection-поиск выполняется только один раз за всё время
+ * работы плагина, а не на каждое сообщение в чате.
  */
 public class HeadComponentUtil {
 
     public static Component createHeadComponent(UUID uuid, String name, String textureValue, String textureSignature) {
-                    try {
-                        Object resolvableProfile = buildResolvableProfile(uuid, name, textureValue, textureSignature);
-                        if (resolvableProfile == null) {
-                            debug("ResolvableProfile is null");
-                            return null;
-                        }
+        try {
+            Object resolvableProfile = buildResolvableProfile(uuid, name, textureValue, textureSignature);
+            if (resolvableProfile == null) {
+                debug("ResolvableProfile is null");
+                return null;
+            }
 
-                        Class<?> playerSpriteClass = Class.forName("net.minecraft.network.chat.contents.objects.PlayerSprite");
-                        Object sprite = null;
-                        try {
-                            Constructor<?> spriteCtor = playerSpriteClass.getConstructor(resolvableProfile.getClass(), boolean.class);
-                            sprite = spriteCtor.newInstance(resolvableProfile, true);
-                        } catch (NoSuchMethodException e) {
-                            try {
-                                Constructor<?> spriteCtor = playerSpriteClass.getConstructor(resolvableProfile.getClass());
-                                sprite = spriteCtor.newInstance(resolvableProfile);
-                            } catch (NoSuchMethodException ex) {
-                                try {
-                                    Constructor<?> spriteCtor = playerSpriteClass.getConstructors()[0];
-                                    Class<?>[] params = spriteCtor.getParameterTypes();
-                                    if (params.length == 2) {
-                                        Object arg1 = params[0].isAssignableFrom(resolvableProfile.getClass()) ? resolvableProfile : null;
-                                        Object arg2 = params[1] == boolean.class ? Boolean.TRUE : null;
-                                        sprite = spriteCtor.newInstance(arg1, arg2);
-                                    } else if (params.length == 1) {
-                                        sprite = spriteCtor.newInstance(resolvableProfile);
-                                    }
-                                } catch (Exception ex2) {
-                                    debug("PlayerSprite ctor not found");
-                                    return null;
-                                }
-                            }
-                        }
+            Class<?> playerSpriteClass = ReflectionCache.findClass("net.minecraft.network.chat.contents.objects.PlayerSprite");
+            if (playerSpriteClass == null) {
+                debug("PlayerSprite class not found");
+                return null;
+            }
 
-                        Class<?> nmsComponentClass = Class.forName("net.minecraft.network.chat.Component");
-                        Method objectFactory = null;
-                        for (Method m : nmsComponentClass.getMethods()) {
-                            if (!m.getName().equals("object")) continue;
-                            if (m.getParameterCount() == 1) {
-                                objectFactory = m;
-                                break;
-                            }
+            Object sprite = null;
+            Constructor<?> spriteCtorWithFlag = ReflectionCache.getConstructor(playerSpriteClass, resolvableProfile.getClass(), boolean.class);
+            if (spriteCtorWithFlag != null) {
+                sprite = spriteCtorWithFlag.newInstance(resolvableProfile, true);
+            } else {
+                Constructor<?> spriteCtorPlain = ReflectionCache.getConstructor(playerSpriteClass, resolvableProfile.getClass());
+                if (spriteCtorPlain != null) {
+                    sprite = spriteCtorPlain.newInstance(resolvableProfile);
+                } else {
+                    Constructor<?>[] ctors = ReflectionCache.getConstructors(playerSpriteClass);
+                    if (ctors.length > 0) {
+                        Constructor<?> fallbackCtor = ctors[0];
+                        Class<?>[] params = fallbackCtor.getParameterTypes();
+                        if (params.length == 2) {
+                            Object arg1 = params[0].isAssignableFrom(resolvableProfile.getClass()) ? resolvableProfile : null;
+                            Object arg2 = params[1] == boolean.class ? Boolean.TRUE : null;
+                            sprite = fallbackCtor.newInstance(arg1, arg2);
+                        } else if (params.length == 1) {
+                            sprite = fallbackCtor.newInstance(resolvableProfile);
                         }
-                        if (objectFactory == null) return null;
-                        Object nmsComponent = objectFactory.invoke(null, sprite);
-
-                        Component adv = convertToAdventure(nmsComponent);
-                        if (adv == null) debug("PaperAdventure.asAdventure returned null");
-                        return adv;
-                    } catch (Exception ignored) {
-                        debug("Exception in createHeadComponent");
+                    }
+                    if (sprite == null) {
+                        debug("PlayerSprite ctor not found");
                         return null;
                     }
                 }
+            }
 
-                private static Object buildResolvableProfile(UUID uuid, String name, String textureValue, String textureSignature) {
-                    try {
-                        Class<?> resolvableProfileClass = Class.forName("net.minecraft.world.item.component.ResolvableProfile");
-                        Class<?> gameProfileClass = Class.forName("com.mojang.authlib.GameProfile");
+            Class<?> nmsComponentClass = ReflectionCache.findClass("net.minecraft.network.chat.Component");
+            if (nmsComponentClass == null) return null;
 
-                        if (textureValue != null && !textureValue.isEmpty()) {
+            Method objectFactory = null;
+            for (Method m : ReflectionCache.getMethods(nmsComponentClass)) {
+                if (!m.getName().equals("object")) continue;
+                if (m.getParameterCount() == 1) {
+                    objectFactory = m;
+                    break;
+                }
+            }
+            if (objectFactory == null) return null;
+            Object nmsComponent = objectFactory.invoke(null, sprite);
+
+            Component adv = convertToAdventure(nmsComponent);
+            if (adv == null) debug("PaperAdventure.asAdventure returned null");
+            return adv;
+        } catch (Exception ignored) {
+            debug("Exception in createHeadComponent");
+            return null;
+        }
+    }
+
+    private static Object buildResolvableProfile(UUID uuid, String name, String textureValue, String textureSignature) {
+        try {
+            Class<?> resolvableProfileClass = ReflectionCache.findClass("net.minecraft.world.item.component.ResolvableProfile");
+            Class<?> gameProfileClass = ReflectionCache.findClass("com.mojang.authlib.GameProfile");
+            if (resolvableProfileClass == null || gameProfileClass == null) return null;
+
+            if (textureValue != null && !textureValue.isEmpty()) {
                 UUID id = makeSkinUuid(name);
                 String profileName = makeSkinName(name);
 
-                Class<?> propertyMapClass = Class.forName("com.mojang.authlib.properties.PropertyMap");
-                Class<?> propertyClass = Class.forName("com.mojang.authlib.properties.Property");
-                            Object property = null;
-                            if (textureSignature != null && !textureSignature.isEmpty()) {
-                                try {
-                                    property = propertyClass.getConstructor(String.class, String.class, String.class)
-                                            .newInstance("textures", textureValue, textureSignature);
-                                } catch (Exception ignored) {}
-                            }
-                            if (property == null) {
-                                try {
-                                    property = propertyClass.getConstructor(String.class, String.class)
-                                            .newInstance("textures", textureValue);
-                                } catch (Exception ignored) {}
-                            }
-                            if (property == null) {
-                                try {
-                                    property = propertyClass.getConstructor(String.class, String.class, String.class)
-                                            .newInstance("textures", textureValue, null);
-                                } catch (Exception ignored) {}
-                            }
-                            if (property == null) {
-                                debug("Property ctor not found");
-                                return null;
-                            }
+                Class<?> propertyMapClass = ReflectionCache.findClass("com.mojang.authlib.properties.PropertyMap");
+                Class<?> propertyClass = ReflectionCache.findClass("com.mojang.authlib.properties.Property");
+                if (propertyMapClass == null || propertyClass == null) return null;
+
+                Object property = null;
+                if (textureSignature != null && !textureSignature.isEmpty()) {
+                    Constructor<?> ctor3 = ReflectionCache.getConstructor(propertyClass, String.class, String.class, String.class);
+                    if (ctor3 != null) {
+                        try {
+                            property = ctor3.newInstance("textures", textureValue, textureSignature);
+                        } catch (Exception ignored) {}
+                    }
+                }
+                if (property == null) {
+                    Constructor<?> ctor2 = ReflectionCache.getConstructor(propertyClass, String.class, String.class);
+                    if (ctor2 != null) {
+                        try {
+                            property = ctor2.newInstance("textures", textureValue);
+                        } catch (Exception ignored) {}
+                    }
+                }
+                if (property == null) {
+                    Constructor<?> ctor3Null = ReflectionCache.getConstructor(propertyClass, String.class, String.class, String.class);
+                    if (ctor3Null != null) {
+                        try {
+                            property = ctor3Null.newInstance("textures", textureValue, null);
+                        } catch (Exception ignored) {}
+                    }
+                }
+                if (property == null) {
+                    debug("Property ctor not found");
+                    return null;
+                }
 
                 Object propertyMap = createPropertyMapWithProperty(propertyMapClass, propertyClass, property);
 
-                            Object gameProfile = createGameProfileWithProperties(gameProfileClass, id, profileName, propertyMap);
-                            if (gameProfile != null) {
-                                Method createResolved = findMethod(resolvableProfileClass, "createResolved", 1, gameProfileClass);
-                                if (createResolved != null) {
-                                    return createResolved.invoke(null, gameProfile);
-                                } else {
-                                    debug("ResolvableProfile.createResolved not found");
-                                }
-                            } else {
-                                debug("GameProfile is null");
-                            }
-                        }
+                Object gameProfile = createGameProfileWithProperties(gameProfileClass, id, profileName, propertyMap);
+                if (gameProfile != null) {
+                    Method createResolved = findMethod(resolvableProfileClass, "createResolved", 1, gameProfileClass);
+                    if (createResolved != null) {
+                        return createResolved.invoke(null, gameProfile);
+                    } else {
+                        debug("ResolvableProfile.createResolved not found");
+                    }
+                } else {
+                    debug("GameProfile is null");
+                }
+            }
 
-                        if (uuid != null) {
-                            Method createUnresolved = findMethod(resolvableProfileClass, "createUnresolved", 1, UUID.class);
-                            if (createUnresolved != null) return createUnresolved.invoke(null, uuid);
-                        }
+            if (uuid != null) {
+                Method createUnresolved = findMethod(resolvableProfileClass, "createUnresolved", 1, UUID.class);
+                if (createUnresolved != null) return createUnresolved.invoke(null, uuid);
+            }
 
             if (name != null && !name.isEmpty()) {
                 Method createUnresolved = findMethod(resolvableProfileClass, "createUnresolved", 1, String.class);
                 if (createUnresolved != null) return createUnresolved.invoke(null, name);
             }
-                    } catch (Exception ignored) {}
+        } catch (Exception ignored) {}
 
-                    return null;
-                }
+        return null;
+    }
 
     private static Object createPropertyMapWithProperty(Class<?> propertyMapClass, Class<?> propertyClass, Object property) {
         try {
@@ -142,7 +164,8 @@ public class HeadComponentUtil {
             if (multimap == null) {
                 multimap = createHashMultimap();
                 if (multimap != null) {
-                    Method put = multimap.getClass().getMethod("put", Object.class, Object.class);
+                    Method put = ReflectionCache.getMethod(multimap.getClass(), "put", Object.class, Object.class);
+                    if (put == null) return null;
                     put.invoke(multimap, texturesKey != null ? texturesKey : "textures", property);
                 }
             }
@@ -158,17 +181,23 @@ public class HeadComponentUtil {
             }
 
             if (multimap != null) {
-                for (String methodName : new String[]{"of", "create", "from"}) {
-                    try {
-                        Method m = propertyMapClass.getMethod(methodName, Class.forName("com.google.common.collect.Multimap"));
-                        Object map = m.invoke(null, multimap);
-                        debug("PropertyMap " + methodName + "(multimap) used");
-                        return map;
-                    } catch (Exception ignored) {}
+                Class<?> multimapIface = ReflectionCache.findClass("com.google.common.collect.Multimap");
+                if (multimapIface != null) {
+                    for (String methodName : new String[]{"of", "create", "from"}) {
+                        Method m = ReflectionCache.getMethod(propertyMapClass, methodName, multimapIface);
+                        if (m == null) continue;
+                        try {
+                            Object map = m.invoke(null, multimap);
+                            debug("PropertyMap " + methodName + "(multimap) used");
+                            return map;
+                        } catch (Exception ignored) {}
+                    }
                 }
             }
 
-            Object map = propertyMapClass.getConstructor().newInstance();
+            Constructor<?> noArgCtor = ReflectionCache.getConstructor(propertyMapClass);
+            if (noArgCtor == null) return null;
+            Object map = noArgCtor.newInstance();
             boolean putOk = tryPutProperty(map, propertyClass, property);
             if (!putOk) debug("PropertyMap.put failed (new map)");
             return map;
@@ -191,7 +220,9 @@ public class HeadComponentUtil {
         } catch (Exception ignored) {}
 
         try {
-            Object gameProfile = gameProfileClass.getConstructor(UUID.class, String.class).newInstance(id, name);
+            Constructor<?> basicCtor = ReflectionCache.getConstructor(gameProfileClass, UUID.class, String.class);
+            if (basicCtor == null) return null;
+            Object gameProfile = basicCtor.newInstance(id, name);
             if (propertyMap != null && !setGameProfileProperties(gameProfile, propertyMap)) {
                 debug("GameProfile properties field set failed");
             }
@@ -201,7 +232,7 @@ public class HeadComponentUtil {
     }
 
     private static Constructor<?> findGameProfileCtorWithProperties(Class<?> gameProfileClass) {
-        for (Constructor<?> c : gameProfileClass.getConstructors()) {
+        for (Constructor<?> c : ReflectionCache.getConstructors(gameProfileClass)) {
             Class<?>[] params = c.getParameterTypes();
             if (params.length < 3) continue;
             if (params[0] != UUID.class) continue;
@@ -244,8 +275,8 @@ public class HeadComponentUtil {
     private static boolean setGameProfileProperties(Object gameProfile, Object propertyMap) {
         try {
             Class<?> gpClass = gameProfile.getClass();
-            java.lang.reflect.Field target = null;
-            for (java.lang.reflect.Field f : gpClass.getDeclaredFields()) {
+            Field target = null;
+            for (Field f : ReflectionCache.getDeclaredFields(gpClass)) {
                 if (f.getType().getName().equals("com.mojang.authlib.properties.PropertyMap")) {
                     target = f;
                     break;
@@ -263,19 +294,23 @@ public class HeadComponentUtil {
 
     private static Object createImmutableMultimapWithProperty(Object property, Object texturesKey) {
         try {
-            Class<?> immutableMultimapClass = Class.forName("com.google.common.collect.ImmutableMultimap");
-            Method builderMethod = immutableMultimapClass.getMethod("builder");
+            Class<?> immutableMultimapClass = ReflectionCache.findClass("com.google.common.collect.ImmutableMultimap");
+            if (immutableMultimapClass == null) return null;
+            Method builderMethod = ReflectionCache.getMethod(immutableMultimapClass, "builder");
+            if (builderMethod == null) return null;
             Object builder = builderMethod.invoke(null);
-            Method put = builder.getClass().getMethod("put", Object.class, Object.class);
+            Method put = ReflectionCache.getMethod(builder.getClass(), "put", Object.class, Object.class);
+            if (put == null) return null;
             put.invoke(builder, texturesKey != null ? texturesKey : "textures", property);
-            Method build = builder.getClass().getMethod("build");
+            Method build = ReflectionCache.getMethod(builder.getClass(), "build");
+            if (build == null) return null;
             return build.invoke(builder);
         } catch (Exception ignored) {}
         return null;
     }
 
     private static Constructor<?> findPropertyMapCtor(Class<?> propertyMapClass) {
-        for (Constructor<?> c : propertyMapClass.getDeclaredConstructors()) {
+        for (Constructor<?> c : ReflectionCache.getDeclaredConstructors(propertyMapClass)) {
             Class<?>[] params = c.getParameterTypes();
             if (params.length == 1 && params[0].getName().equals("com.google.common.collect.Multimap")) {
                 return c;
@@ -286,8 +321,10 @@ public class HeadComponentUtil {
 
     private static Object createHashMultimap() {
         try {
-            Class<?> hashMultimapClass = Class.forName("com.google.common.collect.HashMultimap");
-            Method create = hashMultimapClass.getMethod("create");
+            Class<?> hashMultimapClass = ReflectionCache.findClass("com.google.common.collect.HashMultimap");
+            if (hashMultimapClass == null) return null;
+            Method create = ReflectionCache.getMethod(hashMultimapClass, "create");
+            if (create == null) return null;
             return create.invoke(null);
         } catch (Exception ignored) {}
         return null;
@@ -295,7 +332,7 @@ public class HeadComponentUtil {
 
     private static boolean tryPutProperty(Object properties, Class<?> propertyClass, Object property) {
         Class<?> propsClass = properties.getClass();
-        for (Method m : propsClass.getMethods()) {
+        for (Method m : ReflectionCache.getMethods(propsClass)) {
             if (!m.getName().equals("put")) continue;
             if (m.getParameterCount() != 2) continue;
             try {
@@ -312,32 +349,42 @@ public class HeadComponentUtil {
         }
 
         try {
-            Class<?> multimapClass = Class.forName("com.google.common.collect.Multimap");
-            if (multimapClass.isAssignableFrom(propsClass)) {
-                Method put = multimapClass.getMethod("put", Object.class, Object.class);
-                Object key = resolvePropertyKey(Object.class, propsClass);
-                if (key == null) key = "textures";
-                put.invoke(properties, key, property);
-                return true;
+            Class<?> multimapClass = ReflectionCache.findClass("com.google.common.collect.Multimap");
+            if (multimapClass != null && multimapClass.isAssignableFrom(propsClass)) {
+                Method put = ReflectionCache.getMethod(multimapClass, "put", Object.class, Object.class);
+                if (put != null) {
+                    Object key = resolvePropertyKey(Object.class, propsClass);
+                    if (key == null) key = "textures";
+                    put.invoke(properties, key, property);
+                    return true;
+                }
             }
         } catch (Exception ignored) {}
 
         try {
-            Class<?> immutableMultimapClass = Class.forName("com.google.common.collect.ImmutableMultimap");
-            Method builderMethod = immutableMultimapClass.getMethod("builder");
-            Object builder = builderMethod.invoke(null);
-            Method put = builder.getClass().getMethod("put", Object.class, Object.class);
-            Object key = resolvePropertyKey(Object.class, propsClass);
-            if (key == null) key = "textures";
-            put.invoke(builder, key, property);
-            Method build = builder.getClass().getMethod("build");
-            Object multimap = build.invoke(builder);
+            Class<?> immutableMultimapClass = ReflectionCache.findClass("com.google.common.collect.ImmutableMultimap");
+            if (immutableMultimapClass != null) {
+                Method builderMethod = ReflectionCache.getMethod(immutableMultimapClass, "builder");
+                if (builderMethod != null) {
+                    Object builder = builderMethod.invoke(null);
+                    Method put = ReflectionCache.getMethod(builder.getClass(), "put", Object.class, Object.class);
+                    if (put != null) {
+                        Object key = resolvePropertyKey(Object.class, propsClass);
+                        if (key == null) key = "textures";
+                        put.invoke(builder, key, property);
+                        Method build = ReflectionCache.getMethod(builder.getClass(), "build");
+                        if (build != null) {
+                            Object multimap = build.invoke(builder);
 
-            Method putAll = findMethodByName(propsClass, "putAll", 1, null);
-            if (putAll != null) {
-                putAll.setAccessible(true);
-                putAll.invoke(properties, multimap);
-                return true;
+                            Method putAll = findMethodByName(propsClass, "putAll", 1, null);
+                            if (putAll != null) {
+                                putAll.setAccessible(true);
+                                putAll.invoke(properties, multimap);
+                                return true;
+                            }
+                        }
+                    }
+                }
             }
         } catch (Exception ignored) {}
 
@@ -381,7 +428,7 @@ public class HeadComponentUtil {
     private static Method findMethod(Class<?> type, String name, int paramCount, Class<?> paramType) {
         Method method = findMethodByName(type, name, paramCount, paramType);
         if (method != null) return method;
-        for (Method m : type.getDeclaredMethods()) {
+        for (Method m : ReflectionCache.getDeclaredMethods(type)) {
             if (!m.getName().equals(name)) continue;
             if (m.getParameterCount() != paramCount) continue;
             if (paramType == null) return m;
@@ -393,7 +440,7 @@ public class HeadComponentUtil {
     }
 
     private static Method findMethodByName(Class<?> type, String name, int paramCount, Class<?> paramType) {
-        for (Method m : type.getMethods()) {
+        for (Method m : ReflectionCache.getMethods(type)) {
             if (!m.getName().equals(name)) continue;
             if (m.getParameterCount() != paramCount) continue;
             if (paramType == null) return m;
@@ -406,82 +453,96 @@ public class HeadComponentUtil {
     }
 
     private static Object resolvePropertyKey(Class<?> keyType, Class<?> propsClass) {
-        try {
-            if (keyType == String.class || keyType == Object.class) {
-                return "textures";
-            }
+        if (keyType == String.class || keyType == Object.class) {
+            return "textures";
+        }
 
+        Field propsField = ReflectionCache.getField(propsClass, "TEXTURES");
+        if (propsField != null) {
             try {
-                java.lang.reflect.Field f = propsClass.getField("TEXTURES");
-                Object v = f.get(null);
+                Object v = propsField.get(null);
                 if (v != null) return v;
             } catch (Exception ignored) {}
+        }
 
+        Field keyField = ReflectionCache.getField(keyType, "TEXTURES");
+        if (keyField != null) {
             try {
-                java.lang.reflect.Field f = keyType.getField("TEXTURES");
-                Object v = f.get(null);
+                Object v = keyField.get(null);
                 if (v != null) return v;
             } catch (Exception ignored) {}
+        }
 
-            for (String methodName : new String[]{"key", "of", "valueOf", "create"}) {
+        for (String methodName : new String[]{"key", "of", "valueOf", "create"}) {
+            Method propsMethod = ReflectionCache.getMethod(propsClass, methodName, String.class);
+            if (propsMethod != null) {
                 try {
-                    Method m = propsClass.getMethod(methodName, String.class);
-                    Object v = m.invoke(null, "textures");
-                    if (v != null) return v;
-                } catch (Exception ignored) {}
-                try {
-                    Method m = keyType.getMethod(methodName, String.class);
-                    Object v = m.invoke(null, "textures");
+                    Object v = propsMethod.invoke(null, "textures");
                     if (v != null) return v;
                 } catch (Exception ignored) {}
             }
+            Method keyMethod = ReflectionCache.getMethod(keyType, methodName, String.class);
+            if (keyMethod != null) {
+                try {
+                    Object v = keyMethod.invoke(null, "textures");
+                    if (v != null) return v;
+                } catch (Exception ignored) {}
+            }
+        }
 
+        Constructor<?> ctor = ReflectionCache.getConstructor(keyType, String.class);
+        if (ctor != null) {
             try {
-                Constructor<?> ctor = keyType.getConstructor(String.class);
                 return ctor.newInstance("textures");
             } catch (Exception ignored) {}
-        } catch (Exception ignored) {}
+        }
         return null;
     }
 
     private static Object resolveTexturesKey(Class<?> propertyMapClass) {
-        try {
+        Field f = ReflectionCache.getField(propertyMapClass, "TEXTURES");
+        if (f != null) {
             try {
-                java.lang.reflect.Field f = propertyMapClass.getField("TEXTURES");
                 Object v = f.get(null);
                 if (v != null) return v;
             } catch (Exception ignored) {}
+        }
+
+        for (String methodName : new String[]{"key", "of", "valueOf", "create"}) {
+            Method m = ReflectionCache.getMethod(propertyMapClass, methodName, String.class);
+            if (m == null) continue;
+            try {
+                Object v = m.invoke(null, "textures");
+                if (v != null) return v;
+            } catch (Exception ignored) {}
+        }
+
+        for (Class<?> nested : ReflectionCache.getDeclaredClasses(propertyMapClass)) {
+            Field nestedField = ReflectionCache.getField(nested, "TEXTURES");
+            if (nestedField != null) {
+                try {
+                    Object v = nestedField.get(null);
+                    if (v != null) return v;
+                } catch (Exception ignored) {}
+            }
 
             for (String methodName : new String[]{"key", "of", "valueOf", "create"}) {
+                Method nestedMethod = ReflectionCache.getMethod(nested, methodName, String.class);
+                if (nestedMethod == null) continue;
                 try {
-                    Method m = propertyMapClass.getMethod(methodName, String.class);
-                    Object v = m.invoke(null, "textures");
+                    Object v = nestedMethod.invoke(null, "textures");
                     if (v != null) return v;
                 } catch (Exception ignored) {}
             }
 
-            for (Class<?> nested : propertyMapClass.getDeclaredClasses()) {
+            Constructor<?> nestedCtor = ReflectionCache.getConstructor(nested, String.class);
+            if (nestedCtor != null) {
                 try {
-                    java.lang.reflect.Field f = nested.getField("TEXTURES");
-                    Object v = f.get(null);
-                    if (v != null) return v;
-                } catch (Exception ignored) {}
-
-                for (String methodName : new String[]{"key", "of", "valueOf", "create"}) {
-                    try {
-                        Method m = nested.getMethod(methodName, String.class);
-                        Object v = m.invoke(null, "textures");
-                        if (v != null) return v;
-                    } catch (Exception ignored) {}
-                }
-
-                try {
-                    Constructor<?> ctor = nested.getConstructor(String.class);
-                    Object v = ctor.newInstance("textures");
+                    Object v = nestedCtor.newInstance("textures");
                     if (v != null) return v;
                 } catch (Exception ignored) {}
             }
-        } catch (Exception ignored) {}
+        }
         return null;
     }
 
@@ -503,7 +564,7 @@ public class HeadComponentUtil {
         }
         StringBuilder sb = new StringBuilder();
         sb.append("[SkinDebug] ").append(label).append(" methods:");
-        for (Method m : type.getMethods()) {
+        for (Method m : ReflectionCache.getMethods(type)) {
             if (m.getName().equals("put") || m.getName().equals("add") || m.getName().equals("putAll")) {
                 sb.append(" ").append(m.getName()).append("(");
                 Class<?>[] params = m.getParameterTypes();
@@ -519,9 +580,10 @@ public class HeadComponentUtil {
 
     private static Component convertToAdventure(Object nmsComponent) {
         try {
-            Class<?> paperAdventureClass = Class.forName("io.papermc.paper.adventure.PaperAdventure");
+            Class<?> paperAdventureClass = ReflectionCache.findClass("io.papermc.paper.adventure.PaperAdventure");
+            if (paperAdventureClass == null) throw new ClassNotFoundException();
             Method asAdventure = null;
-            for (Method m : paperAdventureClass.getMethods()) {
+            for (Method m : ReflectionCache.getMethods(paperAdventureClass)) {
                 if (!m.getName().equals("asAdventure")) continue;
                 if (m.getParameterCount() != 1) continue;
                 if (m.getParameterTypes()[0].isAssignableFrom(nmsComponent.getClass())
@@ -546,9 +608,10 @@ public class HeadComponentUtil {
 
     private static Component convertToAdventureViaJson(Object nmsComponent) {
         try {
-            Class<?> serializerClass = Class.forName("net.minecraft.network.chat.Component$Serializer");
+            Class<?> serializerClass = ReflectionCache.findClass("net.minecraft.network.chat.Component$Serializer");
+            if (serializerClass == null) return null;
             Method toJson = null;
-            for (Method m : serializerClass.getMethods()) {
+            for (Method m : ReflectionCache.getMethods(serializerClass)) {
                 if (!m.getName().equals("toJson")) continue;
                 if (m.getParameterCount() != 1) continue;
                 toJson = m;

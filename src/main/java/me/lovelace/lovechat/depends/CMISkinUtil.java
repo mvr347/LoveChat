@@ -103,91 +103,19 @@ public class CMISkinUtil {
         return head;
     }
 
+    /**
+     * Тонкая обёртка над {@link #getSkinPropertyFromCmi}, чтобы не держать
+     * два параллельных пути резолва скина (старый String-based и новый
+     * SkinProperty-based). Кэш (skinCache) заполняется внутри getSkinPropertyFromCmi.
+     */
     public static String getSkinTexture(UUID uuid) {
         if (skinCache.containsKey(uuid)) {
             return skinCache.get(uuid);
         }
-
-        if (!isCMIAvailable() || getSkinByUuidMethod == null) {
-            return null;
-        }
-
-        try {
-            Object skin = null;
-            
-            // Пробуем getSkin(UUID)
-            if (getSkinByUuidMethod.getParameterCount() == 1 && 
-                getSkinByUuidMethod.getParameterTypes()[0] == UUID.class) {
-                skin = getSkinByUuidMethod.invoke(skinManagerInstance, uuid);
-            } 
-            // Пробуем getSkin(String) с UUID.toString()
-            else if (getSkinByUuidMethod.getParameterCount() == 1 && 
-                     getSkinByUuidMethod.getParameterTypes()[0] == String.class) {
-                skin = getSkinByUuidMethod.invoke(skinManagerInstance, uuid.toString());
-            }
-            
-            if (skin != null) {
-                Class<?> skinClass = skin.getClass();
-                String texture = null;
-                
-                // Пробуем разные методы получения текстуры
-                try {
-                    Method getTextureMethod = skinClass.getMethod("getTexture");
-                    texture = (String) getTextureMethod.invoke(skin);
-                } catch (NoSuchMethodException e) {
-                    try {
-                        Method getValueMethod = skinClass.getMethod("getValue");
-                        texture = (String) getValueMethod.invoke(skin);
-                    } catch (NoSuchMethodException ex) {
-                        try {
-                            Method getSkinMethod = skinClass.getMethod("getSkin");
-                            texture = (String) getSkinMethod.invoke(skin);
-                        } catch (NoSuchMethodException ignored) {
-                            // Метод не найден
-                        }
-                    }
-                }
-                
-                if (texture != null && !texture.isEmpty()) {
-                    String normalized = normalizeTextureValue(texture);
-                    skinCache.put(uuid, normalized);
-                    return normalized;
-                }
-            }
-
-            // Пробуем по имени
-            Player player = Bukkit.getPlayer(uuid);
-            if (player != null && getSkinByNameMethod != null) {
-                Object skinByName = getSkinByNameMethod.invoke(skinManagerInstance, player.getName());
-                if (skinByName != null) {
-                    Class<?> skinClass = skinByName.getClass();
-                    try {
-                        Method getTextureMethod = skinClass.getMethod("getTexture");
-                        String texture = (String) getTextureMethod.invoke(skinByName);
-                        if (texture != null && !texture.isEmpty()) {
-                            String normalized = normalizeTextureValue(texture);
-                            skinCache.put(uuid, normalized);
-                            return normalized;
-                        }
-                    } catch (NoSuchMethodException ignored) {
-                        try {
-                            Method getSkinMethod = skinClass.getMethod("getSkin");
-                            String texture = (String) getSkinMethod.invoke(skinByName);
-                            if (texture != null && !texture.isEmpty()) {
-                                String normalized = normalizeTextureValue(texture);
-                                skinCache.put(uuid, normalized);
-                                return normalized;
-                            }
-                        } catch (NoSuchMethodException ignored2) {}
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Тихая ошибка - не спамить в консоль
-            // Lovechat.getInstance().getLogger().warning("Ошибка получения скина CMI: " + e.getMessage());
-        }
-
-        return null;
+        Player player = Bukkit.getPlayer(uuid);
+        String playerName = player != null ? player.getName() : null;
+        SkinProperty prop = getSkinPropertyFromCmi(uuid, playerName);
+        return prop != null ? prop.value() : null;
     }
 
     public static SkinProperty getSkinProperty(UUID uuid, String playerName) {

@@ -14,6 +14,8 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -343,7 +345,7 @@ public class LovechatAPI {
      * @param newText Новый текст
      */
     public static void editMessage(int messageId, @NotNull String newText) {
-        Lovechat.getInstance().getDatabaseManager().editMessage(messageId, newText);
+        Lovechat.getInstance().getDatabaseManager().updateMessage(messageId, newText);
     }
 
     /**
@@ -614,7 +616,6 @@ public class LovechatAPI {
         public static HandlerList getHandlerList() { return HANDLERS; }
     }
 
-    @SuppressWarnings("unused")
     @SuppressWarnings("unused")
     public static class CMISkinChangeEvent extends Event {
         private static final HandlerList HANDLERS = new HandlerList();
