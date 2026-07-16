@@ -220,6 +220,14 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return;
             }
 
+            if (!plugin.isIgnoring(p.getUniqueId(), target.getUniqueId())) {
+                int maxIgnored = plugin.getConfig().getInt("ignore.max-ignored", 50);
+                if (maxIgnored > 0 && plugin.getIgnoredCount(p.getUniqueId()) >= maxIgnored) {
+                    plugin.sendMessage(p, "ignore-max-reached", "{max}", String.valueOf(maxIgnored));
+                    return;
+                }
+            }
+
             plugin.toggleIgnore(p.getUniqueId(), target.getUniqueId());
             if (plugin.isIgnoring(p.getUniqueId(), target.getUniqueId())) {
                 plugin.sendMessage(p, "ignore-added", "{player}", target.getName());
@@ -248,6 +256,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 boolean isOwn = sender instanceof Player player && data.owner().equals(player.getUniqueId());
 
                 if (isAdmin || (isOwn && sender.hasPermission("lovechat.delete"))) {
+                    int deleteTimeLimit = plugin.getConfig().getInt("messagedelete.delete-time-limit", 0);
+                    if (!isAdmin && deleteTimeLimit > 0 && (System.currentTimeMillis() - data.createdAt()) > deleteTimeLimit * 1000L) {
+                        plugin.sendMessage(sender, "delete-time-limit-exceeded");
+                        return;
+                    }
                     plugin.deleteMessageVisual(msgId, sender);
                 } else {
                     plugin.sendMessage(sender, "delete-not-yours");
@@ -283,8 +296,22 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 boolean isOwn = data.owner().equals(p.getUniqueId());
 
                 if (!isAdmin && !(isOwn && p.hasPermission("lovechat.edit"))) {
-                    plugin.sendMessage(sender, "delete-not-yours"); // Здесь в messages.yml должно быть "edit-not-yours" по-хорошему
+                    plugin.sendMessage(sender, "edit-not-yours");
                     return;
+                }
+
+                if (!isAdmin) {
+                    int editTimeLimit = plugin.getConfig().getInt("messageedit.edit-time-limit", 300);
+                    if (editTimeLimit > 0 && (System.currentTimeMillis() - data.createdAt()) > editTimeLimit * 1000L) {
+                        plugin.sendMessage(sender, "edit-time-limit-exceeded");
+                        return;
+                    }
+
+                    int maxEdits = plugin.getConfig().getInt("messageedit.max-edits", 5);
+                    if (maxEdits > 0 && data.editCount() >= maxEdits) {
+                        plugin.sendMessage(sender, "edit-max-reached");
+                        return;
+                    }
                 }
 
                 plugin.startEditSession(p, msgId, data.rawText());
