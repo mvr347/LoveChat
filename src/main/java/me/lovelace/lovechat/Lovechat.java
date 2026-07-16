@@ -48,7 +48,10 @@ public final class Lovechat extends JavaPlugin {
     private YamlConfiguration messagesConfig;
 
     public record ChatLine(int messageId, Component component, boolean isPluginMessage) {}
-    public record MessageData(UUID owner, String channel, String rawText, boolean isStaff) {
+    public record MessageData(UUID owner, String channel, String rawText, boolean isStaff, long createdAt, int editCount) {
+        public MessageData(UUID owner, String channel, String rawText, boolean isStaff) {
+            this(owner, channel, rawText, isStaff, System.currentTimeMillis(), 0);
+        }
     }
 
     public record EditSession(int messageId, String oldText) {}
@@ -105,7 +108,6 @@ public final class Lovechat extends JavaPlugin {
 
         databaseManager = new DatabaseManager(this);
         databaseManager.init();
-        databaseManager.clearAllMessagesSync();
 
         CMISkinUtil.init();
 
@@ -246,7 +248,16 @@ public final class Lovechat extends JavaPlugin {
     public void setTagsDisabled(@NotNull UUID uuid, boolean disabled) { if (disabled) tagsDisabledPlayers.add(uuid); else tagsDisabledPlayers.remove(uuid); }
     public void toggleTagsDisabled(@NotNull UUID uuid) { if (!tagsDisabledPlayers.remove(uuid)) tagsDisabledPlayers.add(uuid); }
     public boolean isIgnoring(@NotNull UUID ignorer, @NotNull UUID ignored) { Set<UUID> ignoredSet = ignoredPlayers.get(ignorer); return ignoredSet != null && ignoredSet.contains(ignored); }
-    public void toggleIgnore(@NotNull UUID ignorer, @NotNull UUID ignored) { Set<UUID> ignoredSet = ignoredPlayers.computeIfAbsent(ignorer, k -> ConcurrentHashMap.newKeySet()); if (!ignoredSet.remove(ignored)) ignoredSet.add(ignored); }
+    public int getIgnoredCount(@NotNull UUID uuid) { Set<UUID> ignoredSet = ignoredPlayers.get(uuid); return ignoredSet == null ? 0 : ignoredSet.size(); }
+    public void toggleIgnore(@NotNull UUID ignorer, @NotNull UUID ignored) {
+        Set<UUID> ignoredSet = ignoredPlayers.computeIfAbsent(ignorer, k -> ConcurrentHashMap.newKeySet());
+        if (!ignoredSet.remove(ignored)) {
+            ignoredSet.add(ignored);
+            databaseManager.addIgnore(ignorer, ignored);
+        } else {
+            databaseManager.removeIgnore(ignorer, ignored);
+        }
+    }
     public void loadIgnores(@NotNull UUID uuid, @NotNull Set<UUID> ignores) { ignoredPlayers.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet()).addAll(ignores); }
     public boolean isWorldDisabled(@NotNull String worldName) {
         List<String> disabled = getConfig().getStringList("general.disabled-worlds");
@@ -376,7 +387,7 @@ public final class Lovechat extends JavaPlugin {
             finalMessageComponent = editEvent.getNewMessageComponent();
         }
         databaseManager.updateMessage(messageId, finalText);
-        getMessageDataCache().put(messageId, new MessageData(data.owner(), data.channel(), finalText, data.isStaff()));
+        getMessageDataCache().put(messageId, new MessageData(data.owner(), data.channel(), finalText, data.isStaff(), data.createdAt(), data.editCount() + 1));
 
         String activeChannel = data.channel();
         var channels = getConfig().getConfigurationSection("colors.channels");

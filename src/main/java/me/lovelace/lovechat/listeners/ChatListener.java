@@ -44,6 +44,9 @@ public class ChatListener implements Listener {
 
     private final Map<UUID, Long> staffCooldowns = new ConcurrentHashMap<>();
     private final Map<UUID, Long> everyoneCooldowns = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> chatCooldowns = new ConcurrentHashMap<>();
+    private final Map<String, Map<UUID, Long>> channelCooldowns = new ConcurrentHashMap<>();
+    private final Map<String, Map<UUID, Deque<Long>>> channelMessageTimestamps = new ConcurrentHashMap<>();
 
     public ChatListener(@NotNull Lovechat plugin) {
         this.plugin = plugin;
@@ -74,6 +77,7 @@ public class ChatListener implements Listener {
         plugin.removeDefaultChannel(uuid);
         staffCooldowns.remove(uuid);
         everyoneCooldowns.remove(uuid);
+        chatCooldowns.remove(uuid);
         plugin.setTagsDisabled(uuid, false);
         if (plugin.isSpy(uuid)) plugin.toggleSpy(uuid);
         chatBubbleManager.removeBubble(uuid);
@@ -92,6 +96,17 @@ public class ChatListener implements Listener {
 
         event.setCancelled(true);
 
+        // AsyncChatEvent runs off the main/region thread. Everything below touches
+        // Bukkit APIs (online players, locations, sending messages, shared caches),
+        // so hop to the player's own scheduler thread before doing any of that work.
+        final String finalRawMessage = rawMessage;
+        final Component finalIncomingComponent = incomingMessageComponent;
+        final boolean finalUseIncomingComponent = useIncomingComponent;
+        player.getScheduler().run(plugin, scheduledTask ->
+                processChatMessage(player, finalRawMessage, finalIncomingComponent, finalUseIncomingComponent), null);
+    }
+
+    private void processChatMessage(@NotNull Player player, String rawMessage, Component incomingMessageComponent, boolean useIncomingComponent) {
         ConfigurationSection channels = plugin.getConfig().getConfigurationSection("colors.channels");
         String activeChannel = plugin.getDefaultChannel(player.getUniqueId());
 
@@ -114,10 +129,18 @@ public class ChatListener implements Listener {
         int radius = resolveRadius(channels, activeChannel);
 
         String perm = channels != null ? channels.getString(activeChannel + ".permission", "NONE") : "NONE";
-        if (!perm.equalsIgnoreCase("NONE") && !player.hasPermission(perm) && (activeChannel == null || !plugin.getCustomChannels().containsKey(activeChannel))) {
+        if (!perm.equalsIgnoreCase("NONE") && !player.hasPermission(perm)) {
             plugin.sendMessage(player, "no-permission-channel");
             return;
         }
+
+        int maxLength = plugin.getConfig().getInt("chat.max-length", 256);
+        if (maxLength > 0 && message.length() > maxLength) {
+            plugin.sendMessage(player, "message-too-long", "{max}", String.valueOf(maxLength));
+            return;
+        }
+
+        if (!checkCooldowns(player, activeChannel, channels)) return;
 
         notifyStaffIfKeywordMatched(player, message);
 
@@ -217,6 +240,54 @@ public class ChatListener implements Listener {
             radius = plugin.getCustomChannels().get(activeChannel);
         }
         return radius;
+    }
+
+    private boolean checkCooldowns(Player player, String activeChannel, ConfigurationSection channels) {
+        UUID uuid = player.getUniqueId();
+        long now = System.currentTimeMillis();
+        boolean bypass = player.hasPermission("lovechat.cooldown.bypass");
+        String cooldownMessage = plugin.getConfig().getString("chat.cooldown-message", "<red>Подождите <yellow>{time}</yellow> сек. перед следующим сообщением!</red>");
+
+        int globalCooldown = plugin.getConfig().getInt("chat.cooldown", 0);
+        if (globalCooldown > 0 && !bypass) {
+            long last = chatCooldowns.getOrDefault(uuid, 0L);
+            long remaining = (last + globalCooldown * 1000L) - now;
+            if (remaining > 0) {
+                player.sendMessage(miniMessage.deserialize(cooldownMessage.replace("{time}", String.valueOf(remaining / 1000 + 1))));
+                return false;
+            }
+        }
+
+        if (activeChannel != null && channels != null) {
+            int channelCooldown = channels.getInt(activeChannel + ".cooldown", 0);
+            if (channelCooldown > 0 && !bypass) {
+                Map<UUID, Long> map = channelCooldowns.computeIfAbsent(activeChannel, k -> new ConcurrentHashMap<>());
+                long last = map.getOrDefault(uuid, 0L);
+                long remaining = (last + channelCooldown * 1000L) - now;
+                if (remaining > 0) {
+                    player.sendMessage(miniMessage.deserialize(cooldownMessage.replace("{time}", String.valueOf(remaining / 1000 + 1))));
+                    return false;
+                }
+                map.put(uuid, now);
+            }
+
+            int maxPerMinute = channels.getInt(activeChannel + ".max-per-minute", -1);
+            if (maxPerMinute >= 0 && !bypass) {
+                Map<UUID, Deque<Long>> map = channelMessageTimestamps.computeIfAbsent(activeChannel, k -> new ConcurrentHashMap<>());
+                Deque<Long> timestamps = map.computeIfAbsent(uuid, k -> new ArrayDeque<>());
+                synchronized (timestamps) {
+                    while (!timestamps.isEmpty() && now - timestamps.peekFirst() > 60_000L) timestamps.pollFirst();
+                    if (timestamps.size() >= maxPerMinute) {
+                        plugin.sendMessage(player, "channel-max-per-minute", "{channel}", activeChannel);
+                        return false;
+                    }
+                    timestamps.addLast(now);
+                }
+            }
+        }
+
+        chatCooldowns.put(uuid, now);
+        return true;
     }
 
     private void notifyStaffIfKeywordMatched(Player player, String message) {
