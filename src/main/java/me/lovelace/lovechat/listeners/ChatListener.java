@@ -36,6 +36,8 @@ import me.lovelace.lovechat.depends.HeadComponentUtil;
 @SuppressWarnings({"unused", "UnsubstitutedExpression", "HttpUrlsUsage", "DuplicatedCode"})
 public class ChatListener implements Listener {
     private final Lovechat plugin;
+    /** Ключи звуков, о поломке которых уже сообщили — чтобы не писать в лог на каждое сообщение. */
+    private final java.util.Set<String> reportedBadSounds = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final MiniMessage miniMessage;
     private final ChatBubbleManager chatBubbleManager;
 
@@ -47,6 +49,24 @@ public class ChatListener implements Listener {
     private final Map<UUID, Long> chatCooldowns = new ConcurrentHashMap<>();
     private final Map<String, Map<UUID, Long>> channelCooldowns = new ConcurrentHashMap<>();
     private final Map<String, Map<UUID, Deque<Long>>> channelMessageTimestamps = new ConcurrentHashMap<>();
+
+    /**
+     * Проигрывает звук, не роняя обработку сообщения из-за кривого ключа в конфиге.
+     * Раньше исключение глушилось молча, и «почему нет звука» выяснялось только опытом;
+     * теперь про каждый плохой ключ сообщается один раз за запуск, без спама на каждое сообщение.
+     */
+    private void playSoundSafely(@NotNull net.kyori.adventure.audience.Audience audience,
+                                 @NotNull net.kyori.adventure.key.Key soundKey,
+                                 @NotNull Sound sound) {
+        try {
+            audience.playSound(sound);
+        } catch (Exception exception) {
+            if (reportedBadSounds.add(soundKey.asString())) {
+                plugin.getLogger().log(java.util.logging.Level.WARNING,
+                    "Не удалось проиграть звук " + soundKey.asString() + " — проверьте ключ в конфиге", exception);
+            }
+        }
+    }
 
     public ChatListener(@NotNull Lovechat plugin) {
         this.plugin = plugin;
@@ -315,9 +335,7 @@ public class ChatListener implements Listener {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         if (p.hasPermission(plugin.getConfig().getString("staff-notifications.permission-receive", "lovechat.staff.receive"))) {
                             p.sendMessage(staffAlert);
-                            try {
-                                p.playSound(Sound.sound(soundKey1, Sound.Source.MASTER, 1f, 1f));
-                            } catch (Exception ignored) {}
+                            playSoundSafely(p, soundKey1, Sound.sound(soundKey1, Sound.Source.MASTER, 1f, 1f));
                         }
                     }
                 }
@@ -579,9 +597,8 @@ public class ChatListener implements Listener {
             ));
 
             if (!soundNameStr2.equalsIgnoreCase("NONE")) {
-                try {
-                    target.playSound(Sound.sound(soundKey2, net.kyori.adventure.sound.Sound.Source.MASTER, 1f, 1f));
-                } catch (Exception ignored) {}
+                playSoundSafely(target, soundKey2,
+                    Sound.sound(soundKey2, net.kyori.adventure.sound.Sound.Source.MASTER, 1f, 1f));
             }
             if (plugin.getConfig().getBoolean("mentions.actionbar.enabled", true)) {
                 target.sendActionBar(miniMessage.deserialize(plugin.getConfig().getString("mentions.actionbar.text", "<gold>Вас упомянули в чате!</gold>")));

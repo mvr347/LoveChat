@@ -265,7 +265,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 } else {
                     plugin.sendMessage(sender, "delete-not-yours");
                 }
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+                // Игрок ввёл не число: раньше команда просто молчала, и выглядело
+                // это так, будто плагин её проглотил.
+                plugin.sendMessage(sender, "invalid-message-id");
+            }
             return;
         }
 
@@ -316,7 +320,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
                 plugin.startEditSession(p, msgId, data.rawText());
 
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+                // Игрок ввёл не число: раньше команда просто молчала, и выглядело
+                // это так, будто плагин её проглотил.
+                plugin.sendMessage(sender, "invalid-message-id");
+            }
             return;
         }
 
