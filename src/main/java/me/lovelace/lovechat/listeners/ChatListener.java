@@ -340,6 +340,14 @@ public class ChatListener implements Listener {
         }
     }
 
+    /**
+     * Applies color escaping to player messages.
+     * Players with 'lovechat.color' permission can use MiniMessage formatting tags.
+     * Other players have their message tags escaped to prevent formatting injection.
+     *
+     * WARNING: Only trusted players should have the 'lovechat.color' permission,
+     * as it allows them to use all MiniMessage formatting features.
+     */
     private String applyColorEscaping(Player player, String message) {
         if (!player.hasPermission("lovechat.color")) {
             return miniMessage.escapeTags(message);

@@ -7,8 +7,9 @@ libraries:
   - "com.github.ben-manes.caffeine:caffeine:3.1.8"
 commands:
   lovechat:
-    description: Основная команда плагия
+    description: Основная команда плагина
     aliases: [chat, lc]
+    permission: lovechat.use
   channel:
     description: Переключить канал чата
     aliases: [ch, c]
@@ -34,20 +35,31 @@ permissions:
   lovechat.admin:
     default: op
   lovechat.use:
-    default: true
-  lovechat.delete.own:
+    description: "Доступ к основной команде /lovechat"
     default: true
   lovechat.delete:
+    description: "Разрешает удалять свои сообщения"
     default: true
-  lovechat.delete.others:
-    default: op
   lovechat.delete.admin:
+    description: "Разрешает удалять чужие сообщения"
     default: op
   lovechat.edit:
+    description: "Разрешает редактировать свои сообщения"
     default: true
-  lovechat.edit.others:
-    default: op
   lovechat.edit.admin:
+    description: "Разрешает редактировать чужие сообщения"
+    default: op
+  lovechat.moderation:
+    description: "Доступ к модераторским функциям чата наравне с lovechat.admin"
+    default: op
+  lovechat.staff.receive:
+    description: "Получать уведомления модерации (переопределяется staff-notifications.permission-receive)"
+    default: op
+  lovechat.cooldown.bypass:
+    description: "Обход задержки между сообщениями"
+    default: op
+  lovechat.json:
+    description: "Разрешает JSON-сообщения в чате (переопределяется chat.permission)"
     default: op
   lovechat.mention:
     default: true
@@ -69,21 +81,3 @@ permissions:
     default: op
   lovechat.clear.console:
     default: op
-  chat.edit:
-    description: "Разрешает удалять и редактировать свои сообщения"
-    default: true
-  chat.edit.admin:
-    description: "Разрешает удалять и редактировать чужие сообщения"
-    default: op
-  # Reactions permissions
-  lovechat.reaction.use:
-    default: true
-  lovechat.reaction.see:
-    default: true
-  lovechat.reaction.admin:
-    default: op
-  # Quote/Reply permissions
-  lovechat.quote.use:
-    default: true
-  lovechat.quote.see:
-    default: true
