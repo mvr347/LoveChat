@@ -223,7 +223,12 @@ public final class Lovechat extends JavaPlugin {
                 trimHistory(history);
                 history.add(new ChatLine(messageId, component, false));
             }
-        } catch (ExecutionException ignored) {}
+        } catch (ExecutionException exception) {
+            // Строка выпадала из истории игрока молча — и удаление/редактирование
+            // такого сообщения потом просто не срабатывало без единой записи в логе.
+            getLogger().log(java.util.logging.Level.WARNING,
+                "Не удалось добавить сообщение в историю чата", exception);
+        }
 
         player.sendMessage(component);
     }
@@ -287,7 +292,12 @@ public final class Lovechat extends JavaPlugin {
                 trimHistory(history);
                 history.add(new ChatLine(messageId, component, true));
             }
-        } catch (ExecutionException ignored) {}
+        } catch (ExecutionException exception) {
+            // Строка выпадала из истории игрока молча — и удаление/редактирование
+            // такого сообщения потом просто не срабатывало без единой записи в логе.
+            getLogger().log(java.util.logging.Level.WARNING,
+                "Не удалось добавить сообщение в историю чата", exception);
+        }
     }
 
     private static void trimHistory(@NotNull List<ChatLine> history) {

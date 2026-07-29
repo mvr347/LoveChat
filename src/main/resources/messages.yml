@@ -34,6 +34,7 @@ channel-max-per-minute: "<red>Слишком много сообщений в к
 # Удаление сообщений
 delete-success: "<green>Сообщение #{id} удалено!</green>"
 delete-not-found: "<red>Сообщение не найдено!</red>"
+invalid-message-id: "<red>Неверный номер сообщения!</red>"
 delete-not-yours: "<red>Вы можете удалять только свои сообщения!</red>"
 
 # Редактирование сообщений
