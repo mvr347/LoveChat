@@ -79,19 +79,19 @@ public class CMISkinUtil {
     public static ItemStack getPlayerHead(Player player) {
         ItemStack head = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
 
-        if (isCMIAvailable()) {
-            String texture = getSkinTexture(player.getUniqueId());
-            if (texture != null && !texture.isEmpty()) {
-                try {
-                    SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
-                    if (skullMeta != null) {
-                        setSkullTexture(skullMeta, texture, player.getUniqueId());
-                        head.setItemMeta(skullMeta);
-                        return head;
-                    }
-                } catch (Exception e) {
-                    Lovechat.getInstance().getLogger().warning("Ошибка при установке текстуры CMI: " + e.getMessage());
+        // Профиль игрока (актуален всегда, включая скины CMI, если CMI меняет сам GameProfile)
+        // проверяется раньше CMI-рефлексии, а не только как её фолбэк.
+        SkinProperty prop = getSkinProperty(player);
+        if (prop != null && prop.value() != null && !prop.value().isEmpty()) {
+            try {
+                SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
+                if (skullMeta != null) {
+                    setSkullTexture(skullMeta, prop.value(), player.getUniqueId());
+                    head.setItemMeta(skullMeta);
+                    return head;
                 }
+            } catch (Exception e) {
+                Lovechat.getInstance().getLogger().warning("Ошибка при установке текстуры скина: " + e.getMessage());
             }
         }
 
@@ -108,18 +108,21 @@ public class CMISkinUtil {
     }
 
     /**
-     * Тонкая обёртка над {@link #getSkinPropertyFromCmi}, чтобы не держать
+     * Тонкая обёртка над {@link #getSkinProperty(UUID, String)}, чтобы не держать
      * два параллельных пути резолва скина (старый String-based и новый
-     * SkinProperty-based). Кэш (skinCache) заполняется внутри getSkinPropertyFromCmi.
+     * SkinProperty-based). Профиль игрока проверяется раньше CMI (см. getSkinProperty).
      */
     public static String getSkinTexture(UUID uuid) {
         if (skinCache.containsKey(uuid)) {
             return skinCache.get(uuid);
         }
         Player player = Bukkit.getPlayer(uuid);
-        String playerName = player != null ? player.getName() : null;
-        SkinProperty prop = getSkinPropertyFromCmi(uuid, playerName);
-        return prop != null ? prop.value() : null;
+        SkinProperty prop = getSkinProperty(uuid, player != null ? player.getName() : null);
+        if (prop != null && prop.value() != null && !prop.value().isEmpty()) {
+            skinCache.put(uuid, prop.value());
+            return prop.value();
+        }
+        return null;
     }
 
     public static SkinProperty getSkinProperty(UUID uuid, String playerName) {
@@ -226,7 +229,7 @@ public class CMISkinUtil {
                 return prop;
             }
             logSkinDebugMiss("CMI", uuid, playerName, skin);
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
 
         return null;
     }
@@ -262,7 +265,7 @@ public class CMISkinUtil {
                 return prop;
             }
             logSkinDebugMiss("CMI_CACHE", uuid, playerName, skin);
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
         return null;
     }
 
@@ -302,7 +305,7 @@ public class CMISkinUtil {
                     return str;
                 }
             } catch (NoSuchMethodException ignored) {
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 return null;
             }
         }
@@ -327,9 +330,9 @@ public class CMISkinUtil {
                         Player p = Bukkit.getPlayer(uuid);
                         if (p != null) return method.invoke(skinManagerInstance, p);
                     }
-                } catch (Exception ignored) {}
+                } catch (Throwable ignored) {}
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
         return null;
     }
 
@@ -356,14 +359,14 @@ public class CMISkinUtil {
             Object properties = getProperties.invoke(skin);
             SkinProperty fromProps = extractSkinPropertyFromProperties(properties);
             if (fromProps != null) return fromProps;
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
 
         try {
             Method getTextures = skinClass.getMethod("getTextures");
             Object textures = getTextures.invoke(skin);
             SkinProperty fromTextures = extractSkinPropertyFromProperties(textures);
             if (fromTextures != null) return fromTextures;
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
 
         String value = invokeSkinString(skinClass, skin, "getTexture", "getValue", "getSkin", "getBase64", "getData");
         if (value != null && !value.isEmpty()) {
@@ -382,10 +385,10 @@ public class CMISkinUtil {
                     sigField.setAccessible(true);
                     Object sigVal = sigField.get(skin);
                     if (sigVal instanceof String sig && !sig.isEmpty()) signature = sig;
-                } catch (Exception ignored) {}
+                } catch (Throwable ignored) {}
                 return new SkinProperty(normalizeTextureValue(str), signature);
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
 
         return null;
     }
@@ -406,7 +409,7 @@ public class CMISkinUtil {
                     if (value != null && !value.isEmpty()) {
                         return new SkinProperty(normalizeTextureValue(value), signature);
                     }
-                } catch (Exception ignored) {}
+                } catch (Throwable ignored) {}
             }
         }
         return null;
