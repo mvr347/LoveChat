@@ -58,7 +58,11 @@ public class CMISkinUtil {
                     getSkinByNameMethod = skinManagerClass.getMethod("getSkin", String.class);
                 } catch (NoSuchMethodException ignored) {}
                 
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // CMI's classes can reference optional dependencies (e.g. Vault) in method
+                // signatures it doesn't itself have loaded; just calling getMethod() on such
+                // a class throws NoClassDefFoundError (an Error, not Exception) when that
+                // optional dependency isn't installed. Treat any failure here as "no CMI skins".
                 Lovechat.getInstance().getLogger().warning("Ошибка инициализации CMI SkinManager: " + e.getMessage());
                 cmiEnabled = false;
             }
