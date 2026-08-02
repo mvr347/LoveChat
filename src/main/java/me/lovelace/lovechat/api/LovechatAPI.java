@@ -6,6 +6,7 @@ import me.lovelace.lovechat.managers.DatabaseManager;
 import me.lovelace.lovechat.depends.CMISkinUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -508,7 +509,10 @@ public class LovechatAPI {
         private final Player mentioned;
 
         public LovechatMentionEvent(Player sender, Player mentioned) {
-            super(true);
+            // Событие летит и с асинхронного потока чата, и с планировщика сущности
+            // (главный поток). Хардкод super(true) роняет сервер во втором случае —
+            // сообщаем реальный поток, а не предполагаемый.
+            super(!Bukkit.isPrimaryThread());
             this.sender = sender;
             this.mentioned = mentioned;
         }
@@ -537,7 +541,9 @@ public class LovechatAPI {
         }
 
         public LovechatMessageEditEvent(Player player, int messageId, String oldMessage, Component oldMessageComponent, String newMessage, Component newMessageComponent) {
-            super(true);
+            // Сейчас вызывается только с асинхронного потока чата, но фиксируем поток
+            // динамически, чтобы событие не упало при вызове из команды.
+            super(!Bukkit.isPrimaryThread());
             this.player = player;
             this.messageId = messageId;
             this.oldMessage = oldMessage;
@@ -586,7 +592,9 @@ public class LovechatAPI {
         }
 
         public LovechatMessageEvent(Player player, String message, Component messageComponent, String channel) {
-            super(true);
+            // См. LovechatMentionEvent: ChatListener перепрыгивает на планировщик игрока
+            // перед обработкой, поэтому событие вызывается с главного потока.
+            super(!Bukkit.isPrimaryThread());
             this.player = player;
             this.message = message;
             this.messageComponent = messageComponent;
