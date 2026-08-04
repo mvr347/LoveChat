@@ -8,6 +8,7 @@ import me.lovelace.lovechat.depends.ProtocolLibHook;
 import me.lovelace.lovechat.expansion.ChatPlaceholderExpansion;
 import me.lovelace.lovechat.listeners.ChatListener;
 import me.lovelace.lovechat.managers.*;
+import me.lovelace.lovechat.utils.LegacyCodeSanitizer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -407,7 +408,7 @@ public final class Lovechat extends JavaPlugin {
         String ownerName = offlineOwner.getName() != null ? offlineOwner.getName() : "Unknown";
 
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            format = PlaceholderAPI.setPlaceholders(offlineOwner, format);
+            format = LegacyCodeSanitizer.toMiniMessage(PlaceholderAPI.setPlaceholders(offlineOwner, format));
         }
         format = stripPlayerHoverClick(format);
 
@@ -417,7 +418,7 @@ public final class Lovechat extends JavaPlugin {
 
         String hoverText = getConfig().getString("colors.hover.player-hover", "<gray>Инфо</gray>").replace("{player}", ownerName);
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            hoverText = PlaceholderAPI.setPlaceholders(offlineOwner, hoverText);
+            hoverText = LegacyCodeSanitizer.toMiniMessage(PlaceholderAPI.setPlaceholders(offlineOwner, hoverText));
         }
         hoverText = hoverText.replace("\n", "<br>");
 
