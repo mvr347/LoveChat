@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.lovelace.lovechat.depends.HeadComponentUtil;
+import me.lovelace.lovechat.utils.LegacyCodeSanitizer;
 
 @SuppressWarnings({"unused", "UnsubstitutedExpression", "HttpUrlsUsage", "DuplicatedCode"})
 public class ChatListener implements Listener {
@@ -508,14 +509,18 @@ public class ChatListener implements Listener {
         // Замена плейсхолдера имени игрока для hover/click команд
         format = format.replace("%player_name%", player.getName());
 
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) format = PlaceholderAPI.setPlaceholders(player, format);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            format = LegacyCodeSanitizer.toMiniMessage(PlaceholderAPI.setPlaceholders(player, format));
+        }
         format = stripPlayerHoverClick(format);
         return format;
     }
 
     private String resolveHoverText(Player player) {
         String hoverText = plugin.getConfig().getString("colors.hover.player-hover", "<gray>Инфо</gray>").replace("{player}", player.getName());
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) hoverText = PlaceholderAPI.setPlaceholders(player, hoverText);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            hoverText = LegacyCodeSanitizer.toMiniMessage(PlaceholderAPI.setPlaceholders(player, hoverText));
+        }
         hoverText = hoverText.replace("\n", "<br>");
         return hoverText;
     }
