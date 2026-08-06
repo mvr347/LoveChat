@@ -8,8 +8,11 @@ libraries:
 commands:
   lovechat:
     description: Основная команда плагина
-    aliases: [chat, lc]
+    aliases: [chat, lc, чат]
     permission: lovechat.use
+  lovechatadmin:
+    description: Административные команды Lovechat (reload и т.д.)
+    permission: lovechat.admin
   channel:
     description: Переключить канал чата
     aliases: [ch, c]

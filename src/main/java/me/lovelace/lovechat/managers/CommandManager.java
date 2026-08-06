@@ -242,9 +242,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             if (args.length == 0) return;
             try {
                 int msgId = Integer.parseInt(args[0]);
-                Lovechat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
+                ChatHistoryManager.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
 
-                // Перевел права на стандартную модель, 
                 boolean isAdmin = sender.hasPermission("lovechat.delete.admin") || sender.isOp();
 
                 if (data == null) {
@@ -253,9 +252,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                     return;
                 }
 
-                boolean isOwn = sender instanceof Player player && data.owner().equals(player.getUniqueId());
-
-                if (isAdmin || (isOwn && sender.hasPermission("lovechat.delete"))) {
+                if (plugin.getChatHistoryManager().canDelete(sender, data)) {
                     int deleteTimeLimit = plugin.getConfig().getInt("messagedelete.delete-time-limit", 0);
                     if (!isAdmin && deleteTimeLimit > 0 && (System.currentTimeMillis() - data.createdAt()) > deleteTimeLimit * 1000L) {
                         plugin.sendMessage(sender, "delete-time-limit-exceeded");
@@ -289,7 +286,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
             try {
                 int msgId = Integer.parseInt(args[0]);
-                Lovechat.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
+                ChatHistoryManager.MessageData data = plugin.getMessageDataCache().getIfPresent(msgId);
 
                 if (data == null) {
                     plugin.sendMessage(sender, "edit-not-found");
@@ -297,9 +294,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 }
 
                 boolean isAdmin = p.hasPermission("lovechat.edit.admin") || p.isOp();
-                boolean isOwn = data.owner().equals(p.getUniqueId());
 
-                if (!isAdmin && !(isOwn && p.hasPermission("lovechat.edit"))) {
+                if (!EditSessionManager.canEdit(p, data)) {
                     plugin.sendMessage(sender, "edit-not-yours");
                     return;
                 }
@@ -330,34 +326,27 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         // --- ACH COMMAND ---
         if (isAchCmd) {
-            if (args.length >= 1 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("lovechat.admin")) {
-                String type = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "all";
-                if (type.equals("config")) {
-                    plugin.reloadConfig();
-                    plugin.registerDynamicChannelCommands();
-                    plugin.getChatBubbleManager().loadConfig();
-                    plugin.sendMessage(sender, "reload-success");
-                } else if (type.equals("message") || type.equals("messages")) {
-                    plugin.loadMessages();
-                    plugin.sendMessage(sender, "reload-messages-success");
+            // Админ-команды (reload и т.д.) переехали под единую /lovechatadmin — здесь
+            // остаётся только понятная подсказка, чтобы команда не «молчала» для тех, кто
+            // по привычке набирает /chat reload.
+            if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
+                if (sender.hasPermission("lovechat.admin")) {
+                    plugin.sendMessage(sender, "reload-moved");
                 } else {
-                    plugin.reloadConfig();
-                    plugin.loadMessages();
-                    plugin.registerDynamicChannelCommands();
-                    plugin.getChatBubbleManager().loadConfig();
-                    plugin.sendMessage(sender, "reload-success");
+                    plugin.sendMessage(sender, "no-permission");
                 }
                 return;
             }
 
             if (args.length == 0) {
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-header")));
-                if (sender.hasPermission("lovechat.admin")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-reload")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-chat")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-silent")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-ignore")));
                 sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-chatclear")));
                 if (sender.hasPermission("lovechat.spy")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-spy")));
+                if (sender.hasPermission("lovechat.admin")) sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-lovechatadmin")));
+                sender.sendMessage(mm.deserialize(plugin.getRawMsg("help-footer")));
                 return;
             }
         }
@@ -371,20 +360,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         if (command.getName().equalsIgnoreCase("lovechat")) {
             if (args.length == 1) {
-                if (sender.hasPermission("lovechat.admin")) completions.add("reload");
                 completions.add("silent");
                 completions.add("ignore");
                 completions.add("chatclear");
                 if (sender.hasPermission("lovechat.tagtoggle")) completions.add("tagtoggle");
                 if (sender.hasPermission("lovechat.spy")) completions.add("spy");
                 return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
-            }
-            else if (args.length == 2 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("lovechat.admin")) {
-                completions.add("all");
-                completions.add("config");
-                completions.add("message");
-                completions.add("messages");
-                return StringUtil.copyPartialMatches(args[1], completions, new ArrayList<>());
             }
             else if (args.length == 2 && args[0].equalsIgnoreCase("chatclear")) {
                 if (sender.hasPermission("lovechat.clear.global")) {

@@ -70,13 +70,24 @@ mention-everyone-cooldown: "<red>Использование @everyone досту
 # ========================================== #
 #      КОМАНДЫ (HELP)                        #
 # ========================================== #
+# Единый тидy-формат для всех help-выводов плагина: разделитель, список
+# "<aqua>/команда аргументы</aqua> <gray>- описание</gray>", разделитель.
 help-header: "<dark_gray>========== <aqua>Lovechat Помощь</aqua> ==========</dark_gray>"
-help-reload: "<aqua>/chat reload</aqua> <gray>- Перезагрузить конфигурацию</gray>"
-help-chat: "<aqua>/chat <канал></aqua> <gray>- Переключить канал чата</gray>"
+help-chat: "<aqua>/chat <канал></aqua> <gray>- Переключить канал чата (алиасы: /lc, /чат)</gray>"
 help-silent: "<aqua>/silent</aqua> <gray>- Скрытый режим (сообщения не видны другим)</gray>"
 help-ignore: "<aqua>/ignore <игрок></aqua> <gray>- Игнорировать игрока</gray>"
 help-chatclear: "<aqua>/chatclear</aqua> <gray>- Очистить чат</gray>"
 help-spy: "<aqua>/spy</aqua> <gray>- Режим шпиона (видеть все каналы)</gray>"
+help-lovechatadmin: "<aqua>/lovechatadmin reload</aqua> <gray>- Административные команды Lovechat</gray>"
+help-footer: "<dark_gray>=========================================</dark_gray>"
+reload-moved: "<yellow>Эта команда переехала: используйте <aqua>/lovechatadmin reload</aqua>.</yellow>"
+
+# ========================================== #
+#      АДМИН-КОМАНДА (/lovechatadmin)        #
+# ========================================== #
+admin-help-header: "<dark_gray>========== <aqua>Lovechat Admin</aqua> ==========</dark_gray>"
+admin-help-reload: "<aqua>/lovechatadmin reload [all|config|message]</aqua> <gray>- Перезагрузить конфигурацию и/или сообщения</gray>"
+admin-help-footer: "<dark_gray>=========================================</dark_gray>"
 
 # ========================================== #
 #      ОЧИСТКА ЧАТА                          #
