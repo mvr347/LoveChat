@@ -1,7 +1,7 @@
 name: Lovechat
 version: "3.0"
 main: me.lovelace.lovechat.Lovechat
-api-version: '1.21.11'
+api-version: '26.2'
 softdepend: [PlaceholderAPI, CMI, ProtocolLib]
 libraries:
   - "com.github.ben-manes.caffeine:caffeine:3.1.8"
