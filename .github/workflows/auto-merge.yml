@@ -1,0 +1,23 @@
+name: Auto-Merge PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]' && (github.event.pull_request.draft == false || github.event.action == 'ready_for_review')
+    
+    steps:
+      - name: Enable auto-merge for this PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr merge $PR_NUMBER --squash --auto || true
