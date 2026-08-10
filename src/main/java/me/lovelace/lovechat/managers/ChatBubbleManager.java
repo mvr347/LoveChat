@@ -89,7 +89,12 @@ public class ChatBubbleManager {
         String message = rawMessage;
 
         if (message.length() > maxLength) {
-            message = message.substring(0, maxLength - 3) + "...";
+            // Clamp: a misconfigured (or negative) max-length must not turn into a negative
+            // substring bound, or this throws StringIndexOutOfBoundsException on the next chat message.
+            int safeLength = Math.max(0, maxLength);
+            message = safeLength >= 3
+                    ? message.substring(0, safeLength - 3) + "..."
+                    : message.substring(0, safeLength);
         }
 
         if (!player.hasPermission("lovechat.color")) {
@@ -184,9 +189,10 @@ public class ChatBubbleManager {
                     textDisplay.getScheduler().runDelayed(plugin, t -> {
                         if (!textDisplay.isDead()) {
                             textDisplay.remove();
-                            if (playerBubbles.get(player.getUniqueId()) == BubbleInstance.this) {
-                                playerBubbles.remove(player.getUniqueId());
-                            }
+                            // Atomic conditional remove instead of get()-then-remove(): a new
+                            // bubble for this player could otherwise be inserted between the two
+                            // calls and get wiped out by this stale cleanup.
+                            playerBubbles.remove(player.getUniqueId(), BubbleInstance.this);
                         }
                     }, null, 10L);
                 }

@@ -260,6 +260,11 @@ public final class Lovechat extends JavaPlugin {
         }
     }
     public void loadIgnores(@NotNull UUID uuid, @NotNull Set<UUID> ignores) { ignoredPlayers.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet()).addAll(ignores); }
+    /** Drops the in-memory ignore-list cache for a player on quit; the underlying relationships
+     *  stay in the database and are reloaded via {@link #loadIgnores} on their next join. Without
+     *  this, ignoredPlayers grows by one entry for every unique player who's ever used /ignorechat,
+     *  forever, for the life of the server. */
+    public void clearIgnoredMemory(@NotNull UUID uuid) { ignoredPlayers.remove(uuid); }
     public void loadDisabledWorlds() {
         List<String> disabled = getConfig().getStringList("general.disabled-worlds");
         Set<String> lowered = new HashSet<>();
