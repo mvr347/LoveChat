@@ -101,8 +101,6 @@ public class LovechatAPI {
     }
 
     /**
-    /**
-    /**
      * Получить утилиту CMI скинов
      * @return CMISkinUtil class
      */

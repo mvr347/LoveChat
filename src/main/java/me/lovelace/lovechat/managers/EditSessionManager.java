@@ -1,6 +1,9 @@
 package me.lovelace.lovechat.managers;
 
 import me.lovelace.lovechat.Lovechat;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
@@ -36,10 +39,14 @@ public class EditSessionManager {
         Component promptMsg = MiniMessage.miniMessage().deserialize(plugin.getRawMsg("edit-prompt"));
         player.sendMessage(promptMsg);
 
-        Component oldMsg = MiniMessage.miniMessage().deserialize(
-                "<dark_gray>Старое сообщение: </dark_gray><white><click:suggest_command:'" + oldText.replace("'", "")
-                        + "'><hover:show_text:'Нажмите, чтобы скопировать в строку ввода'>" + oldText + "</hover></click></white>"
-        );
+        // Built via the Component API rather than string-concatenating oldText into a MiniMessage
+        // string and deserializing it: oldText is the player's own previous chat message, so it's
+        // untrusted input — concatenating it into markup let a message containing MiniMessage tags
+        // (e.g. a stray </click><click:run_command:'...'>) inject its own click/hover events.
+        Component oldMsg = Component.text("Старое сообщение: ", NamedTextColor.DARK_GRAY)
+                .append(Component.text(oldText, NamedTextColor.WHITE)
+                        .clickEvent(ClickEvent.suggestCommand(oldText))
+                        .hoverEvent(HoverEvent.showText(Component.text("Нажмите, чтобы скопировать в строку ввода"))));
         player.sendMessage(oldMsg);
     }
 

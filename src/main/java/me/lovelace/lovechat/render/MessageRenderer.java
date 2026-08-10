@@ -56,6 +56,9 @@ public class MessageRenderer {
     /** Кулдаун @everyone — общий для отправки и редактирования, т.к. обе ветки идут через {@link #render}. */
     private final Map<UUID, Long> everyoneCooldowns = new ConcurrentHashMap<>();
 
+    /** Логируем невалидный mentions.sound из конфига один раз, а не на каждое упоминание. */
+    private final Set<String> reportedBadMentionSounds = ConcurrentHashMap.newKeySet();
+
     public MessageRenderer(@NotNull Lovechat plugin) {
         this.plugin = plugin;
     }
@@ -478,14 +481,22 @@ public class MessageRenderer {
         String soundNameStr = soundConfig != null ? soundConfig : "entity.experience_orb.pickup";
         Key soundKey = Key.key(soundNameStr.contains(":") ? soundNameStr : "minecraft:" + soundNameStr.toLowerCase(Locale.ROOT));
 
+        // Both replacement strings only depend on t2, not on target - precompute them once per
+        // mentioned player instead of recomputing formatTarget/formatOthers.replace() inside the
+        // O(targets * mentioned) nested loop below.
+        Map<UUID, String> tagPerPlayer = new HashMap<>();
+        Map<UUID, String> othersReplacementPerPlayer = new HashMap<>();
+        for (Player t2 : mentionedPlayers) {
+            tagPerPlayer.put(t2.getUniqueId(), "<mention_" + t2.getName() + ">");
+            othersReplacementPerPlayer.put(t2.getUniqueId(), formatOthers.replace("%player%", t2.getName()));
+        }
+
         for (Player target : mentionedPlayers) {
             String msgTarget = message;
+            String targetReplacement = formatTarget.replace("%player%", target.getName());
             for (Player t2 : mentionedPlayers) {
-                if (t2.equals(target)) {
-                    msgTarget = msgTarget.replace("<mention_" + t2.getName() + ">", formatTarget.replace("%player%", t2.getName()));
-                } else {
-                    msgTarget = msgTarget.replace("<mention_" + t2.getName() + ">", formatOthers.replace("%player%", t2.getName()));
-                }
+                String replacement = t2.equals(target) ? targetReplacement : othersReplacementPerPlayer.get(t2.getUniqueId());
+                msgTarget = msgTarget.replace(tagPerPlayer.get(t2.getUniqueId()), replacement);
             }
 
             mentionedComps.put(target.getUniqueId(), miniMessage.deserialize(format,
@@ -496,8 +507,14 @@ public class MessageRenderer {
             if (!soundNameStr.equalsIgnoreCase("NONE")) {
                 try {
                     target.playSound(Sound.sound(soundKey, Sound.Source.MASTER, 1f, 1f));
-                } catch (Exception ignored) {
-                    // Некорректный ключ звука в конфиге — не роняем обработку сообщения из-за этого.
+                } catch (Exception e) {
+                    // Некорректный ключ звука в конфиге — не роняем обработку сообщения из-за этого,
+                    // но логируем один раз за перезагрузку конфига, чтобы не спамить консоль на
+                    // каждое упоминание.
+                    if (reportedBadMentionSounds.add(soundNameStr)) {
+                        plugin.getLogger().log(java.util.logging.Level.WARNING,
+                                "Failed to play mention sound with key '" + soundNameStr + "' (check mentions.sound in config.yml)", e);
+                    }
                 }
             }
             if (plugin.getConfig().getBoolean("mentions.actionbar.enabled", true)) {

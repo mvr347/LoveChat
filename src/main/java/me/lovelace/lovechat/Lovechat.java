@@ -55,6 +55,11 @@ public final class Lovechat extends JavaPlugin {
     private final Set<UUID> tagsDisabledPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> spyPlayers = ConcurrentHashMap.newKeySet();
 
+    /** Cached lowercase copy of general.disabled-worlds - isWorldDisabled() runs on every
+     *  chat message, so it can't afford to call getConfig().getStringList() and build a new
+     *  List each time. Refreshed in onEnable() and on every "reload config"/"reload all". */
+    private volatile Set<String> disabledWorlds = Set.of();
+
     public static @NotNull Lovechat getInstance() {
         if (instance == null) {
             throw new IllegalStateException("Plugin instance not initialized");
@@ -67,6 +72,7 @@ public final class Lovechat extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
         loadMessages();
+        loadDisabledWorlds();
 
         databaseManager = new DatabaseManager(this);
         databaseManager.init();
@@ -254,12 +260,16 @@ public final class Lovechat extends JavaPlugin {
         }
     }
     public void loadIgnores(@NotNull UUID uuid, @NotNull Set<UUID> ignores) { ignoredPlayers.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet()).addAll(ignores); }
-    public boolean isWorldDisabled(@NotNull String worldName) {
+    public void loadDisabledWorlds() {
         List<String> disabled = getConfig().getStringList("general.disabled-worlds");
-        if (disabled.isEmpty()) return false;
+        Set<String> lowered = new HashSet<>();
         for (String w : disabled) {
-            if (w != null && w.equalsIgnoreCase(worldName)) return true;
+            if (w != null) lowered.add(w.toLowerCase(Locale.ROOT));
         }
-        return false;
+        disabledWorlds = lowered;
+    }
+
+    public boolean isWorldDisabled(@NotNull String worldName) {
+        return disabledWorlds.contains(worldName.toLowerCase(Locale.ROOT));
     }
 }

@@ -303,7 +303,24 @@ public class ChatListener implements Listener {
     }
 
     private void broadcastToRecipients(Player sender, UUID senderUuid, MessageRenderer.RenderedMessage rendered, boolean isAdminChannel, boolean senderIsAdmin, int finalRadius, Location senderLoc, int messageId) {
-        for (Player p : Bukkit.getOnlinePlayers()) {
+        // Global chat (no radius) has to consider every online player anyway, so there's no
+        // gain from a nearby-players lookup there - only local/radius chat benefits, since on a
+        // busy server the radius-recipient set is normally far smaller than "everyone online".
+        // Spy-mode viewers still need the message regardless of distance, so they're unioned in
+        // separately rather than falling out of a plain nearby-players scan.
+        Collection<? extends Player> candidates;
+        if (finalRadius == -1) {
+            candidates = Bukkit.getOnlinePlayers();
+        } else {
+            Set<Player> nearby = new HashSet<>(senderLoc.getNearbyPlayers(finalRadius));
+            for (UUID spyUuid : plugin.getSpyPlayers()) {
+                Player spyPlayer = Bukkit.getPlayer(spyUuid);
+                if (spyPlayer != null) nearby.add(spyPlayer);
+            }
+            candidates = nearby;
+        }
+
+        for (Player p : candidates) {
             if (plugin.isWorldDisabled(p.getWorld().getName())) {
                 continue;
             }

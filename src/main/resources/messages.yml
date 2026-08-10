@@ -18,6 +18,7 @@ reload-messages-success: "<green>Сообщения успешно переза�
 player-not-found: "<red>Игрок не найден!</red>"
 player-only: "<red>Эта команда только для игроков!</red>"
 world-disabled: "<red>Lovechat отключен в этом мире.</red>"
+command-cooldown: "<red>Подождите ещё немного перед повторным использованием этой команды.</red>"
 
 # ========================================== #
 #         КАНАЛЫ ЧАТА                        #
