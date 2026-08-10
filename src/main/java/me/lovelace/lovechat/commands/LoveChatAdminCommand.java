@@ -61,6 +61,7 @@ public class LoveChatAdminCommand implements CommandExecutor, TabCompleter {
         switch (type) {
             case "config" -> {
                 plugin.reloadConfig();
+                plugin.loadDisabledWorlds();
                 plugin.registerDynamicChannelCommands();
                 plugin.getChatBubbleManager().loadConfig();
                 plugin.sendMessage(sender, "reload-success");
@@ -72,6 +73,7 @@ public class LoveChatAdminCommand implements CommandExecutor, TabCompleter {
             default -> {
                 plugin.reloadConfig();
                 plugin.loadMessages();
+                plugin.loadDisabledWorlds();
                 plugin.registerDynamicChannelCommands();
                 plugin.getChatBubbleManager().loadConfig();
                 plugin.sendMessage(sender, "reload-success");

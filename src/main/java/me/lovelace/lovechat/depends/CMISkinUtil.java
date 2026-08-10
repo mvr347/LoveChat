@@ -1,5 +1,7 @@
 package me.lovelace.lovechat.depends;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.lovelace.lovechat.Lovechat;
@@ -12,7 +14,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Утилита для работы со скинами CMI.
@@ -22,7 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CMISkinUtil {
 
     private static boolean cmiEnabled = false;
-    private static final ConcurrentHashMap<UUID, String> skinCache = new ConcurrentHashMap<>();
+    private static final Cache<UUID, String> skinCache = CacheBuilder.newBuilder()
+            .maximumSize(2000)
+            .expireAfterAccess(2, TimeUnit.HOURS)
+            .build();
     private static Object skinManagerInstance = null;
     private static Method getSkinByUuidMethod = null;
     private static Method getSkinByNameMethod = null;
@@ -113,8 +118,9 @@ public class CMISkinUtil {
      * SkinProperty-based). Профиль игрока проверяется раньше CMI (см. getSkinProperty).
      */
     public static String getSkinTexture(UUID uuid) {
-        if (skinCache.containsKey(uuid)) {
-            return skinCache.get(uuid);
+        String cached = skinCache.getIfPresent(uuid);
+        if (cached != null) {
+            return cached;
         }
         Player player = Bukkit.getPlayer(uuid);
         SkinProperty prop = getSkinProperty(uuid, player != null ? player.getName() : null);
@@ -170,11 +176,11 @@ public class CMISkinUtil {
     }
 
     public static void clearCache() {
-        skinCache.clear();
+        skinCache.invalidateAll();
     }
 
     public static void removeFromCache(UUID uuid) {
-        skinCache.remove(uuid);
+        skinCache.invalidate(uuid);
     }
 
     /**

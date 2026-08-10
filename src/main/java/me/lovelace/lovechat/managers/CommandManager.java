@@ -1,5 +1,7 @@
 package me.lovelace.lovechat.managers;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import me.lovelace.lovechat.Lovechat;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -17,14 +19,39 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("RedundantReturnStatement")
 public class CommandManager implements CommandExecutor, TabCompleter {
     private final Lovechat plugin;
     private final MiniMessage mm = MiniMessage.miniMessage();
 
+    /** Per-player, per-toggle-command cooldown so /spy, /silent, /tagtoggle, /channel and
+     *  /ignorechat can't be spammed to flood the console/DB with toggle writes and messages.
+     *  Bounded + short-lived, same as the codebase's other player-keyed caches. */
+    private final Cache<String, Long> commandCooldowns = CacheBuilder.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(10, TimeUnit.SECONDS)
+            .build();
+    private static final long TOGGLE_COOLDOWN_MILLIS = 1500L;
+
     public CommandManager(@NotNull Lovechat plugin) {
         this.plugin = plugin;
+    }
+
+    /** Returns true (and sends a cooldown message) if the player must wait before reusing
+     *  {@code commandKey}; admins with lovechat.admin bypass the cooldown entirely. */
+    private boolean isOnCooldown(@NotNull Player player, @NotNull String commandKey) {
+        if (player.hasPermission("lovechat.admin")) return false;
+        String key = player.getUniqueId() + ":" + commandKey;
+        long now = System.currentTimeMillis();
+        Long last = commandCooldowns.getIfPresent(key);
+        if (last != null && now - last < TOGGLE_COOLDOWN_MILLIS) {
+            plugin.sendMessage(player, "command-cooldown");
+            return true;
+        }
+        commandCooldowns.put(key, now);
+        return false;
     }
 
     @Override
@@ -99,6 +126,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return;
             }
             if (sender instanceof Player p) {
+                if (isOnCooldown(p, "spy")) return;
                 plugin.toggleSpy(p.getUniqueId());
                 if (plugin.isSpy(p.getUniqueId())) plugin.sendMessage(p, "spy-enabled");
                 else plugin.sendMessage(p, "spy-disabled");
@@ -113,6 +141,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return;
             }
             if (sender instanceof Player p) {
+                if (isOnCooldown(p, "silent")) return;
                 plugin.toggleSilent(p.getUniqueId());
                 if (plugin.isSilent(p.getUniqueId())) plugin.sendMessage(p, "silent-enabled");
                 else plugin.sendMessage(p, "silent-disabled");
@@ -140,6 +169,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 plugin.sendMessage(sender, "player-not-found");
                 return;
             }
+
+            if (sender instanceof Player actingPlayer && isOnCooldown(actingPlayer, "tagtoggle")) return;
 
             plugin.toggleTagsDisabled(target.getUniqueId());
             boolean disabled = plugin.hasTagsDisabled(target.getUniqueId());
@@ -169,6 +200,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 plugin.sendMessage(p, "no-permission-channel");
                 return;
             }
+
+            if (isOnCooldown(p, "channel")) return;
 
             if (args.length == 0) {
                 String current = plugin.getDefaultChannel(p.getUniqueId());
@@ -219,6 +252,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 plugin.sendMessage(p, "ignore-admin");
                 return;
             }
+
+            if (isOnCooldown(p, "ignorechat")) return;
 
             if (!plugin.isIgnoring(p.getUniqueId(), target.getUniqueId())) {
                 int maxIgnored = plugin.getConfig().getInt("ignore.max-ignored", 50);

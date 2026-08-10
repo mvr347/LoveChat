@@ -64,6 +64,8 @@ public class ProtocolLibHook {
                         }
                     }
                 } catch (Exception e) {
+                    lovechat.getLogger().log(java.util.logging.Level.WARNING,
+                            "Failed to deserialize chat component from packet " + event.getPacketType(), e);
                     return;
                 }
 

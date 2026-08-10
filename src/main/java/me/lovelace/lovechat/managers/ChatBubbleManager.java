@@ -107,16 +107,9 @@ public class ChatBubbleManager {
     }
 
     private boolean hasPlayersNearby(@NotNull Player player, int radius) {
-        // Проверяем наличие ДРУГИХ игроков в радиусе (не включая самого игрока)
-        for (Player p : player.getWorld().getPlayers()) {
-            if (p.equals(player)) continue; // Пропускаем самого игрока
-            
-            // Проверяем расстояние
-            if (p.getLocation().distanceSquared(player.getLocation()) <= radius * radius) {
-                return true; // Есть хотя бы один игрок рядом
-            }
-        }
-        return false; // Нет других игроков рядом
+        // Paper's chunk-indexed nearby-entity lookup instead of scanning every player in the
+        // world on every single chat message.
+        return !player.getLocation().getNearbyPlayers(radius, p -> !p.equals(player)).isEmpty();
     }
 
     public void removeBubble(@NotNull UUID playerUuid) {
@@ -216,7 +209,10 @@ public class ChatBubbleManager {
                     if (silentPlayer.getLocation().distanceSquared(player.getLocation()) <= radius * radius) {
                         try {
                             silentPlayer.hideEntity(plugin, textDisplay);
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            plugin.getLogger().log(java.util.logging.Level.WARNING,
+                                    "Failed to hide chat bubble from " + silentPlayer.getName(), e);
+                        }
                     }
                 }
             }

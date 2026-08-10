@@ -72,6 +72,7 @@ public class ChatHistoryManager {
             .build();
     private final Cache<Integer, MessageData> messageDataCache = CacheBuilder.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
+            .maximumSize(10000)
             .build();
 
     /**
@@ -179,9 +180,11 @@ public class ChatHistoryManager {
         try {
             List<String> list = ignoredSentStrings.get(uuid, CopyOnWriteArrayList::new);
             list.add(plain);
-        } catch (ExecutionException ignored) {
+        } catch (ExecutionException e) {
             // Кэш недоступен — в худшем случае ProtocolLibHook один раз ошибочно задублирует
             // это эхо в историю получателя; не стоит ронять из-за этого само редактирование.
+            plugin.getLogger().log(java.util.logging.Level.WARNING,
+                    "Failed to get ignored sent strings from cache for player " + uuid, e);
         }
     }
 
