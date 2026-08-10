@@ -330,17 +330,31 @@ public class MessageRenderer {
     private void handleEveryoneMention(Player player, String name, Matcher m, StringBuilder sb, Set<Player> mentionedPlayers, Location senderLoc, int finalRadius) {
         if (player.hasPermission("lovechat.mention.everyone")) {
 
-            long lastTime = everyoneCooldowns.getOrDefault(player.getUniqueId(), 0L);
             int cdSeconds = plugin.getConfig().getInt("mentions.everyone-cooldown", 300);
-            long timeLeft = (lastTime + (cdSeconds * 1000L)) - System.currentTimeMillis();
+            boolean bypass = player.hasPermission("lovechat.mention.everyone.bypass");
+            long now = System.currentTimeMillis();
 
-            if (timeLeft > 0 && !player.hasPermission("lovechat.mention.everyone.bypass")) {
+            // Check-then-set folded into one atomic compute() so two @everyone mentions from the
+            // same player processed back-to-back can't both read the old timestamp and both pass.
+            long[] previousTime = new long[1];
+            boolean[] blocked = new boolean[1];
+            everyoneCooldowns.compute(player.getUniqueId(), (uuid, last) -> {
+                long lastVal = last == null ? 0L : last;
+                long timeLeft = (lastVal + cdSeconds * 1000L) - now;
+                if (timeLeft > 0 && !bypass) {
+                    previousTime[0] = lastVal;
+                    blocked[0] = true;
+                    return last;
+                }
+                return now;
+            });
+
+            if (blocked[0]) {
+                long timeLeft = (previousTime[0] + cdSeconds * 1000L) - now;
                 plugin.sendMessage(player, "mention-everyone-cooldown", "{time}", String.valueOf(timeLeft / 1000));
                 m.appendReplacement(sb, "@" + name);
                 return;
             }
-
-            everyoneCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
 
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.equals(player)) continue;

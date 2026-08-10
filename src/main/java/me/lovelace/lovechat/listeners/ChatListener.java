@@ -99,6 +99,10 @@ public class ChatListener implements Listener {
         chatCooldowns.remove(uuid);
         plugin.setTagsDisabled(uuid, false);
         if (plugin.isSpy(uuid)) plugin.toggleSpy(uuid);
+        if (plugin.isSilent(uuid)) plugin.toggleSilent(uuid);
+        plugin.clearIgnoredMemory(uuid);
+        for (Map<UUID, Long> map : channelCooldowns.values()) map.remove(uuid);
+        for (Map<UUID, Deque<Long>> map : channelMessageTimestamps.values()) map.remove(uuid);
         chatBubbleManager.removeBubble(uuid);
     }
 
