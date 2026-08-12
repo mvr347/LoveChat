@@ -72,6 +72,8 @@ colors:
   # Каналы чата
   channels:
     local:
+      # Отображаемое имя канала (используется в сообщениях игроку вместо ключа канала)
+      name: "Локальный"
       prefix: ""
       radius: 200
       format: "<delete_edit_buttons><gray>[L] </gray><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <white><message></white>"
@@ -84,6 +86,7 @@ colors:
       # Максимум сообщений в минуту (-1 = без ограничений)
       max-per-minute: -1
     global:
+      name: "Глобальный"
       prefix: "!"
       radius: -1
       format: "<delete_edit_buttons><yellow>[G] </yellow><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <gradient:#FFAA00:#FF0000><message></gradient>"
@@ -94,6 +97,7 @@ colors:
       cooldown: 0
       max-per-minute: -1
     admin:
+      name: "Админ"
       prefix: "adm"
       radius: -1
       format: "<delete_edit_buttons><red>[A] </red><hover:show_text:'<red>Администратор'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <red><message></red>"
@@ -104,6 +108,7 @@ colors:
       max-per-minute: -1
     # Пример дополнительного канала
     #vip:
+    #  name: "VIP"
     #  prefix: "$"
     #  radius: -1
     #  format: "<delete_edit_buttons><gold>[VIP] </gold><hover:show_text:'<gray>Кликни для /msg <player>'><click:suggest_command:'/msg <player> '><head:player:player></click></hover>: <gold><message></gold>"
