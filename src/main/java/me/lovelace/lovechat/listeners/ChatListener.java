@@ -110,6 +110,10 @@ public class ChatListener implements Listener {
     @SuppressWarnings("unused")
     public void onModernChat(@NotNull AsyncChatEvent event) {
         Player player = event.getPlayer();
+        if (!isAuthenticated(player)) {
+            event.setCancelled(true);
+            return;
+        }
         if (plugin.isWorldDisabled(player.getWorld().getName())) return;
         Component incomingMessageComponent = event.message();
         String rawMessage = PlainTextComponentSerializer.plainText().serialize(incomingMessageComponent);
@@ -360,6 +364,17 @@ public class ChatListener implements Listener {
 
     private static boolean isPlainTextComponent(@NotNull Component component, @NotNull String plainText) {
         return Component.text(plainText).equals(component);
+    }
+
+    /**
+     * Не кэшируем Optional<AuthOracle> — сосед может зарегистрировать реализацию позже,
+     * см. LoveCore.service(...) javadoc в LoveCore. Если LoveAuth не установлен, сервис
+     * просто не найдётся, и чат ничем не блокируется.
+     */
+    private boolean isAuthenticated(@NotNull Player player) {
+        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.auth.AuthOracle.class)
+                .map(oracle -> oracle.isAuthenticated(player.getUniqueId()))
+                .orElse(true);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
