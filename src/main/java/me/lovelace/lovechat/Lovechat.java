@@ -145,7 +145,9 @@ public final class Lovechat extends JavaPlugin {
     }
 
     public void sendMessage(@NotNull org.bukkit.command.CommandSender sender, @NotNull String key, @NotNull String... placeholders) {
-        Component component = MiniMessage.miniMessage().deserialize(getRawMsg(key));
+        if (messagesConfig == null) loadMessages();
+        String prefix = messagesConfig.getString("prefix", "");
+        Component component = MiniMessage.miniMessage().deserialize(prefix + getRawMsg(key));
 
         for (int i = 0; i < placeholders.length; i += 2) {
             if (i + 1 < placeholders.length) {
