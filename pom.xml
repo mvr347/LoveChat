@@ -80,6 +80,14 @@
             <version>2.10.1</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- LoveCore API - soft dependency, AuthOracle gate on the chat pipeline -->
+        <dependency>
+            <groupId>com.github.mvr347.LoveCore</groupId>
+            <artifactId>lovecore-api</artifactId>
+            <version>d97cef40ff</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
