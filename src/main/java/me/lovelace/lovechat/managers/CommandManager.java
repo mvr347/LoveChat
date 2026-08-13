@@ -210,13 +210,15 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
                 plugin.setDefaultChannel(p.getUniqueId(), nextChannel);
                 plugin.getDatabaseManager().saveDefaultChannel(p.getUniqueId(), nextChannel);
-                plugin.sendMessage(p, "channel-switched", "{channel}", nextChannel);
+                String nextChannelName = channels.getString(nextChannel + ".name", nextChannel);
+                plugin.sendMessage(p, "channel-switched", "{channel}", nextChannelName);
             } else {
                 String requested = args[0].toLowerCase();
                 if (availableChannels.contains(requested)) {
                     plugin.setDefaultChannel(p.getUniqueId(), requested);
                     plugin.getDatabaseManager().saveDefaultChannel(p.getUniqueId(), requested);
-                    plugin.sendMessage(p, "channel-switched", "{channel}", requested);
+                    String requestedName = channels.getString(requested + ".name", requested);
+                    plugin.sendMessage(p, "channel-switched", "{channel}", requestedName);
                 } else {
                     plugin.sendMessage(p, "channel-not-found");
                 }
