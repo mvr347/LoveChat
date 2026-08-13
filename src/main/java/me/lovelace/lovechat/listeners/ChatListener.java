@@ -264,7 +264,8 @@ public class ChatListener implements Listener {
                 synchronized (timestamps) {
                     while (!timestamps.isEmpty() && now - timestamps.peekFirst() > 60_000L) timestamps.pollFirst();
                     if (timestamps.size() >= maxPerMinute) {
-                        plugin.sendMessage(player, "channel-max-per-minute", "{channel}", activeChannel);
+                        String channelName = channels.getString(activeChannel + ".name", activeChannel);
+                        plugin.sendMessage(player, "channel-max-per-minute", "{channel}", channelName);
                         return false;
                     }
                     timestamps.addLast(now);
