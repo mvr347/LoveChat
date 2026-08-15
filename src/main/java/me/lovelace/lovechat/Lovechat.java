@@ -200,6 +200,7 @@ public final class Lovechat extends JavaPlugin {
     public int getNextMessageId() { return chatHistoryManager.getNextMessageId(); }
     public void setLastMessageId(@NotNull UUID uuid, int messageId) { chatHistoryManager.setLastMessageId(uuid, messageId); }
     public @Nullable Integer getLastMessageId(@NotNull UUID uuid) { return chatHistoryManager.getLastMessageId(uuid); }
+    public void removeLastMessageId(@NotNull UUID uuid) { chatHistoryManager.removeLastMessageId(uuid); }
     public @NotNull Cache<Integer, ChatHistoryManager.MessageData> getMessageDataCache() { return chatHistoryManager.getMessageDataCache(); }
 
     public void addChatLineAndSend(@NotNull Player player, int messageId, @NotNull Component component) {
