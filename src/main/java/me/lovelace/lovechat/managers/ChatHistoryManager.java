@@ -111,6 +111,12 @@ public class ChatHistoryManager {
     public int getNextMessageId() { return messageIdCounter.getAndIncrement(); }
     public void setLastMessageId(@NotNull UUID uuid, int messageId) { lastMessageIds.put(uuid, messageId); }
     public @Nullable Integer getLastMessageId(@NotNull UUID uuid) { return lastMessageIds.get(uuid); }
+    /** Drops the in-memory "last message id" cache for a player on quit. Unlike default-channel,
+     *  tags-disabled and ignore state, this value is never persisted to the database and never
+     *  reloaded on join - it exists only to serve the %lovechat_message_id_last% placeholder for
+     *  the current session. Without this, lastMessageIds grew by one entry for every unique
+     *  player who ever sent a single chat message, forever, for the life of the server. */
+    public void removeLastMessageId(@NotNull UUID uuid) { lastMessageIds.remove(uuid); }
     public @NotNull Cache<Integer, MessageData> getMessageDataCache() { return messageDataCache; }
 
     public void cleanUp() {

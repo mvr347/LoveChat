@@ -104,6 +104,7 @@ public class ChatListener implements Listener {
         for (Map<UUID, Long> map : channelCooldowns.values()) map.remove(uuid);
         for (Map<UUID, Deque<Long>> map : channelMessageTimestamps.values()) map.remove(uuid);
         chatBubbleManager.removeBubble(uuid);
+        plugin.removeLastMessageId(uuid);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
