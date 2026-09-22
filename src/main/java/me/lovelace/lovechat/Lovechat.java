@@ -83,6 +83,7 @@ public final class Lovechat extends JavaPlugin {
         messageRenderer = new MessageRenderer(this);
         editSessionManager = new EditSessionManager(this);
         chatHistoryManager = new ChatHistoryManager(this, messageRenderer);
+        chatHistoryManager.seedMessageIdCounter(databaseManager.getMaxMessageIdAtStartup() + 1);
 
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
         new ProtocolLibHook(this).register();

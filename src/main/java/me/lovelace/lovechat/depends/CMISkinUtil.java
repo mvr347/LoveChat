@@ -32,6 +32,12 @@ public class CMISkinUtil {
     private static Method getSkinByUuidMethod = null;
     private static Method getSkinByNameMethod = null;
     private static Class<?> skinManagerClass = null;
+    /** Code-review fix: these two lookups used to fail with a bare {@code catch (Throwable ignored) {}}
+     *  and zero logging, even under debug mode — the actual mechanism behind the reported "CMI
+     *  integration stopped working, no errors from either plugin" bug. Logged once per failure site
+     *  (not per lookup call) so a broken hook is visible without spamming the console on every message. */
+    private static boolean loggedCmiLookupFailure = false;
+    private static boolean loggedCmiCacheLookupFailure = false;
 
     public record SkinProperty(String value, String signature) {}
 
@@ -235,7 +241,13 @@ public class CMISkinUtil {
                 return prop;
             }
             logSkinDebugMiss("CMI", uuid, playerName, skin);
-        } catch (Throwable ignored) {}
+        } catch (Throwable e) {
+            if (!loggedCmiLookupFailure) {
+                loggedCmiLookupFailure = true;
+                Lovechat.getInstance().getLogger().warning(
+                        "CMI skin lookup failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
+        }
 
         return null;
     }
@@ -271,7 +283,13 @@ public class CMISkinUtil {
                 return prop;
             }
             logSkinDebugMiss("CMI_CACHE", uuid, playerName, skin);
-        } catch (Throwable ignored) {}
+        } catch (Throwable e) {
+            if (!loggedCmiCacheLookupFailure) {
+                loggedCmiCacheLookupFailure = true;
+                Lovechat.getInstance().getLogger().warning(
+                        "CMI skin lookup failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
+        }
         return null;
     }
 

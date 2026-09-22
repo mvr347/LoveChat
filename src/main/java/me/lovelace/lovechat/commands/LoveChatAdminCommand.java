@@ -1,6 +1,7 @@
 package me.lovelace.lovechat.commands;
 
 import me.lovelace.lovechat.Lovechat;
+import me.lovelace.lovechat.depends.CMISkinUtil;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -64,6 +65,7 @@ public class LoveChatAdminCommand implements CommandExecutor, TabCompleter {
                 plugin.loadDisabledWorlds();
                 plugin.registerDynamicChannelCommands();
                 plugin.getChatBubbleManager().loadConfig();
+                CMISkinUtil.init();
                 plugin.sendMessage(sender, "reload-success");
             }
             case "message", "messages" -> {
@@ -76,6 +78,7 @@ public class LoveChatAdminCommand implements CommandExecutor, TabCompleter {
                 plugin.loadDisabledWorlds();
                 plugin.registerDynamicChannelCommands();
                 plugin.getChatBubbleManager().loadConfig();
+                CMISkinUtil.init();
                 plugin.sendMessage(sender, "reload-success");
             }
         }
