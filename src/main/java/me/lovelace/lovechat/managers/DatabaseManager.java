@@ -16,6 +16,7 @@ public class DatabaseManager {
     private Connection connection;
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private volatile boolean isShuttingDown = false;
+    private volatile int maxMessageIdAtStartup = 0;
 
     public DatabaseManager(Lovechat plugin) { this.plugin = plugin; }
 
@@ -26,11 +27,23 @@ public class DatabaseManager {
             File dbFile = new File(dataFolder, plugin.getConfig().getString("database.file", "chat.db"));
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
             createTables();
+            // Code-review fix: read the highest persisted message id at startup so the in-memory
+            // id counter (ChatHistoryManager) can be seeded past it, instead of always restarting
+            // at 1 and colliding with rows from before the restart that the hourly cleanup sweep
+            // hasn't purged yet (which made the INSERT below fail its PRIMARY KEY constraint).
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT COALESCE(MAX(id), 0) FROM messages")) {
+                if (rs.next()) maxMessageIdAtStartup = rs.getInt(1);
+            }
         } catch (SQLException e) {
             plugin.getLogger().severe("SQLite error: " + e.getMessage());
             connection = null;
         }
     }
+
+    /** Highest {@code messages.id} found in the database at {@link #init()} time, or 0 if the
+     *  table was empty/unreadable. Used to seed {@code ChatHistoryManager}'s message-id counter. */
+    public int getMaxMessageIdAtStartup() { return maxMessageIdAtStartup; }
 
     /** All DB methods below run on {@code dbExecutor} (single-threaded, so no explicit
      *  synchronization is needed between them) — but a caller can still race against
@@ -72,6 +85,19 @@ public class DatabaseManager {
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "Failed to clear messages synchronously: " + e.getMessage(), e);
         }
+    }
+    /** Async counterpart to {@link #clearAllMessagesSync()} for the public API surface (code-review
+     *  fix): callers of {@link me.lovelace.lovechat.api.LovechatAPI#clearAllMessages()} should not be
+     *  blocked on the calling thread for up to 10 seconds. */
+    public CompletableFuture<Void> clearAllMessages() {
+        return CompletableFuture.runAsync(() -> {
+            if (notReady()) return;
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("DELETE FROM messages");
+            } catch (SQLException e) {
+                logSqlWarning("clearing messages", e);
+            }
+        }, dbExecutor);
     }
     public void deleteMessage(int id) { CompletableFuture.runAsync(() -> { if (notReady()) return; try (PreparedStatement pstmt = connection.prepareStatement("DELETE FROM messages WHERE id = ?")) { pstmt.setInt(1, id); pstmt.executeUpdate(); } catch (SQLException e) { logSqlWarning("deleting message " + id, e); } }, dbExecutor); }
     public void updateMessage(int id, String text) { CompletableFuture.runAsync(() -> { if (notReady()) return; try (PreparedStatement pstmt = connection.prepareStatement("UPDATE messages SET content = ? WHERE id = ?")) { pstmt.setString(1, text); pstmt.setInt(2, id); pstmt.executeUpdate(); } catch (SQLException e) { logSqlWarning("updating message " + id, e); } }, dbExecutor); }

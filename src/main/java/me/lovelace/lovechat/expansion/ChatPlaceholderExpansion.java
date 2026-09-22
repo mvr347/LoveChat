@@ -21,7 +21,10 @@ public class ChatPlaceholderExpansion extends PlaceholderExpansion {
 
         switch (params) {
             case "channel": return onlinePlayer != null ? plugin.getDefaultChannel(player.getUniqueId()) : "unknown";
-            case "message_id_last": return onlinePlayer != null ? String.valueOf(plugin.getLastMessageId(player.getUniqueId())) : "0";
+            case "message_id_last": {
+                Integer lastId = onlinePlayer != null ? plugin.getLastMessageId(player.getUniqueId()) : null;
+                return lastId != null ? String.valueOf(lastId) : "0";
+            }
             case "silent_mode": return onlinePlayer != null && plugin.isSilent(player.getUniqueId()) ? "true" : "false";
             case "spy_mode": return onlinePlayer != null && plugin.isSpy(player.getUniqueId()) ? "true" : "false";
             case "mentions_disabled": return onlinePlayer != null && plugin.hasTagsDisabled(player.getUniqueId()) ? "true" : "false";

@@ -109,6 +109,11 @@ public class ChatHistoryManager {
     // ========================================================== //
 
     public int getNextMessageId() { return messageIdCounter.getAndIncrement(); }
+    /** Code-review fix: seeds the counter from the DB's highest persisted id at startup so it
+     *  doesn't always restart at 1 and collide with not-yet-purged rows from before a restart
+     *  (which silently failed their INSERT on the messages table's PRIMARY KEY). Must be called
+     *  once during plugin startup, before any message is sent. */
+    public void seedMessageIdCounter(int nextId) { messageIdCounter.set(nextId); }
     public void setLastMessageId(@NotNull UUID uuid, int messageId) { lastMessageIds.put(uuid, messageId); }
     public @Nullable Integer getLastMessageId(@NotNull UUID uuid) { return lastMessageIds.get(uuid); }
     /** Drops the in-memory "last message id" cache for a player on quit. Unlike default-channel,

@@ -465,10 +465,12 @@ public class LovechatAPI {
     }
 
     /**
-     * Очистить все сообщения
+     * Очистить все сообщения (асинхронно — не блокирует вызывающий поток)
+     * @return CompletableFuture, завершающийся после очистки
      */
-    public static void clearAllMessages() {
-        Lovechat.getInstance().getDatabaseManager().clearAllMessagesSync();
+    @NotNull
+    public static CompletableFuture<Void> clearAllMessages() {
+        return Lovechat.getInstance().getDatabaseManager().clearAllMessages();
     }
 
     /**
