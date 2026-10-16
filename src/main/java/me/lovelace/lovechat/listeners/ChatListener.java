@@ -205,13 +205,19 @@ public class ChatListener implements Listener {
         EditSessionManager.EditSession session = plugin.getEditSession(player.getUniqueId());
         if (session == null) return false;
         event.setCancelled(true);
-        if (rawMessage.equalsIgnoreCase("cancel")) {
-            plugin.removeEditSession(player.getUniqueId());
-            plugin.sendMessage(player, "edit-cancelled-click");
-            return true;
-        }
-        plugin.editMessageVisual(session.messageId(), rawMessage, incomingMessageComponent, player);
-        plugin.removeEditSession(player.getUniqueId());
+        // AsyncChatEvent runs off the main/region thread; editMessageVisual and sendMessage use
+        // PlaceholderAPI/Bukkit, so hop to the player's scheduler exactly like the normal send path.
+        final UUID uuid = player.getUniqueId();
+        final int messageId = session.messageId();
+        // The session map is concurrent; consume the session now so a second message cannot reuse it.
+        plugin.removeEditSession(uuid);
+        player.getScheduler().run(plugin, scheduledTask -> {
+            if (rawMessage.equalsIgnoreCase("cancel")) {
+                plugin.sendMessage(player, "edit-cancelled-click");
+                return;
+            }
+            plugin.editMessageVisual(messageId, rawMessage, incomingMessageComponent, player);
+        }, null);
         return true;
     }
 
