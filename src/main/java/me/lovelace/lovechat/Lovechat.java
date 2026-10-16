@@ -208,6 +208,7 @@ public final class Lovechat extends JavaPlugin {
         chatHistoryManager.addChatLineAndSend(player, messageId, component);
     }
 
+    public void removePluginEchoes(int messageId) { chatHistoryManager.removePluginEchoes(messageId); }
     public @NotNull Component getClearChatComponent() { return chatHistoryManager.getClearChatComponent(); }
     public void clearChatForPlayer(@NotNull Player player, boolean keepStaff) { chatHistoryManager.clearChatForPlayer(player, keepStaff); }
 
