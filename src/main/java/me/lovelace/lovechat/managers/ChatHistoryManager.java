@@ -164,6 +164,36 @@ public class ChatHistoryManager {
         }
     }
 
+    /**
+     * Public API for other plugins (e.g. LoveChatFilter): removes the packet-recorded "echo" copies
+     * that follow the line of {@code messageId} in every online player's history, so a later
+     * edit/delete does not resend a stale unfiltered duplicate.
+     */
+    public void removePluginEchoes(int messageId) {
+        for (Player online : new java.util.ArrayList<>(plugin.getServer().getOnlinePlayers())) {
+            List<ChatLine> history = chatHistory.getIfPresent(online.getUniqueId());
+            if (history == null) continue;
+            synchronized (history) {
+                for (int i = 0; i < history.size(); i++) {
+                    ChatLine line = history.get(i);
+                    if (line.messageId() != messageId || line.isPluginMessage()) continue;
+                    String expected = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                            .plainText().serialize(line.component());
+                    int index = i + 1;
+                    while (index < history.size()) {
+                        ChatLine candidate = history.get(index);
+                        if (!candidate.isPluginMessage()) break;
+                        String plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                                .plainText().serialize(candidate.component());
+                        if (!plain.equals(expected)) break;
+                        history.remove(index);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     private static void trimHistory(@NotNull List<ChatLine> history) {
         while (history.size() >= 100) {
             if (history instanceof Deque<?> deque) {
