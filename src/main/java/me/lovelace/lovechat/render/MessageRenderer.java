@@ -439,8 +439,9 @@ public class MessageRenderer {
 
     private Component buildHeadComponent(RenderAuthor author) {
         // Создаём компонент игрока: голова + имя с hover/click.
-        // Пытаемся получить кастомный скин из CMI — через Player, если владелец онлайн,
-        // иначе через UUID/имя (единственный доступный путь для офлайн-профиля).
+        // Resolve the skin from the configured source (integrations.skins: cmi|loveessential) — via Player
+        // when the author is online, otherwise via UUID/name (the only path for an offline profile;
+        // loveessential mode serves it from the last-known-skin cache).
         CMISkinUtil.SkinProperty skinProp = author.online() != null
                 ? CMISkinUtil.getSkinProperty(author.online())
                 : CMISkinUtil.getSkinProperty(author.uuid(), author.name());
