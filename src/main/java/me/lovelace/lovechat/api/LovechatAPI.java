@@ -209,11 +209,25 @@ public class LovechatAPI {
     // ========================================== //
 
     /**
-     * Проверка доступности CMI
-     * @return true если CMI доступен
+     * Проверка доступности настроенного источника скинов ({@code integrations.skins}).
+     * @return true, если выбранный источник сейчас может отдавать скины сверх собственного профиля игрока:
+     *         мост CMI в режиме {@code cmi} либо зарегистрированный PresenceOracle {@code loveessential}
+     *         в режиме {@code loveessential}
      */
+    public static boolean isSkinProviderAvailable() {
+        return CMISkinUtil.isSkinProviderAvailable();
+    }
+
+    /**
+     * Проверка доступности CMI.
+     * @return то же, что {@link #isSkinProviderAvailable()}. В режиме {@code cmi} (по умолчанию) это ровно
+     *         "CMI доступен"; в режиме {@code loveessential} метод отвечает про LoveEssential, а не про CMI.
+     * @deprecated имя вводит в заблуждение при {@code integrations.skins: loveessential};
+     *             используйте {@link #isSkinProviderAvailable()}
+     */
+    @Deprecated
     public static boolean isCMIAvailable() {
-        return CMISkinUtil.isCMIAvailable();
+        return isSkinProviderAvailable();
     }
 
     /**
