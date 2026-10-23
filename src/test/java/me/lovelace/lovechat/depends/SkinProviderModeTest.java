@@ -35,6 +35,15 @@ class SkinProviderModeTest {
     }
 
     @Test
+    void withoutCoreGlobalAndBlankMeanCmiButAnExplicitValueStays() {
+        assertEquals("cmi", SkinProviderMode.withoutCore(null));
+        assertEquals("cmi", SkinProviderMode.withoutCore(" "));
+        assertEquals("cmi", SkinProviderMode.withoutCore("Global"));
+        assertEquals("loveessential", SkinProviderMode.withoutCore("loveessential"));
+        assertEquals("citizens", SkinProviderMode.withoutCore("citizens"));
+    }
+
+    @Test
     void configIdsMatchTheLoveCoreProviderIds() {
         assertEquals("cmi", SkinProviderMode.CMI.configId());
         assertEquals("loveessential", SkinProviderMode.LOVEESSENTIAL.configId());

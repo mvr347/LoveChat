@@ -126,10 +126,19 @@ public class CMISkinUtil {
     /** Reads {@code integrations.skins} and the CMI switches; unknown values fall back to {@code cmi} with one warning. */
     private static void loadConfig() {
         var config = Lovechat.getInstance().getConfig();
-        SkinProviderMode.Parsed parsed = SkinProviderMode.parse(config.getString("integrations.skins"));
+        String configured = config.getString("integrations.skins", "global");
+        // "global" (the default) follows integrations.provider of LoveCore; an explicit cmi/loveessential wins.
+        String effective;
+        try {
+            effective = dev.lovelace.lovecore.api.LoveCore.providerId(
+                    dev.lovelace.lovecore.api.provider.ProviderKind.PRESENCE, configured);
+        } catch (LinkageError coreMissingOrOld) {
+            effective = SkinProviderMode.withoutCore(configured);
+        }
+        SkinProviderMode.Parsed parsed = SkinProviderMode.parse(effective);
         if (!parsed.recognized()) {
             Lovechat.getInstance().getLogger().warning("integrations.skins: неизвестное значение '"
-                    + config.getString("integrations.skins") + "' (допустимо: cmi, loveessential). Используется cmi.");
+                    + configured + "' (допустимо: global, cmi, loveessential). Используется cmi.");
         }
         mode = parsed.mode();
         cmiSkinsWanted = config.getBoolean("integrations.cmi.enabled", true)
