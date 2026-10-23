@@ -252,7 +252,11 @@ public final class Lovechat extends JavaPlugin {
     public void toggleSpy(@NotNull UUID uuid) { if (!spyPlayers.remove(uuid)) spyPlayers.add(uuid); }
     public boolean hasTagsDisabled(@NotNull UUID uuid) { return tagsDisabledPlayers.contains(uuid); }
     public void setTagsDisabled(@NotNull UUID uuid, boolean disabled) { if (disabled) tagsDisabledPlayers.add(uuid); else tagsDisabledPlayers.remove(uuid); }
-    public void toggleTagsDisabled(@NotNull UUID uuid) { if (!tagsDisabledPlayers.remove(uuid)) tagsDisabledPlayers.add(uuid); }
+    public void toggleTagsDisabled(@NotNull UUID uuid) {
+        if (!tagsDisabledPlayers.remove(uuid)) tagsDisabledPlayers.add(uuid);
+        // Saved on every change: the cache is reloaded from the database on join, so an unsaved toggle used to be lost.
+        databaseManager.saveTagsDisabled(uuid, tagsDisabledPlayers.contains(uuid));
+    }
     public boolean isIgnoring(@NotNull UUID ignorer, @NotNull UUID ignored) { Set<UUID> ignoredSet = ignoredPlayers.get(ignorer); return ignoredSet != null && ignoredSet.contains(ignored); }
     public int getIgnoredCount(@NotNull UUID uuid) { Set<UUID> ignoredSet = ignoredPlayers.get(uuid); return ignoredSet == null ? 0 : ignoredSet.size(); }
     public void toggleIgnore(@NotNull UUID ignorer, @NotNull UUID ignored) {

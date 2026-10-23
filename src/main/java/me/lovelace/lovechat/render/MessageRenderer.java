@@ -13,6 +13,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -119,10 +121,25 @@ public class MessageRenderer {
      */
     public record RenderedMessage(UUID ownerUuid, Component baseComponent,
                                    Map<UUID, Component> mentionedComponents,
-                                   Set<Player> mentionedPlayers, String buttons) {
+                                   Set<Player> mentionedPlayers, String buttons,
+                                   IntFunction<Variant> hiddenVariants) {
+
+        /** The message as one group of viewers sees it: base text and the personal mention texts. */
+        public record Variant(Component baseComponent, Map<UUID, Component> mentionedComponents) {
+        }
 
         public Component forViewer(@NotNull Player viewer) {
-            Component component = mentionedComponents.getOrDefault(viewer.getUniqueId(), baseComponent);
+            Component base = baseComponent;
+            Map<UUID, Component> mentioned = mentionedComponents;
+            // The author's choice and the viewer's choice (LoveCore DisplayPrefs) may leave out the clan tag
+            // or the suffix; such a viewer gets a variant built without them.
+            int hidden = hiddenVariants == null ? 0 : DisplayTags.hiddenFor(ownerUuid, viewer.getUniqueId());
+            if (hidden != 0) {
+                Variant variant = hiddenVariants.apply(hidden);
+                base = variant.baseComponent();
+                mentioned = variant.mentionedComponents();
+            }
+            Component component = mentioned.getOrDefault(viewer.getUniqueId(), base);
 
             boolean isOwner = viewer.getUniqueId().equals(ownerUuid);
             boolean isAdmin = viewer.hasPermission("lovechat.admin") || viewer.hasPermission("lovechat.moderation");
@@ -186,16 +203,65 @@ public class MessageRenderer {
                 ? plugin.getConfig().getString("messageedit.mark", " <dark_gray><i>(изм.)</i></dark_gray>")
                 : "";
 
-        Component baseComponent = miniMessage.deserialize(format + editedMark,
-                Placeholder.component("player", playerComponent),
-                Placeholder.component("message", mentionedPlayers.isEmpty() ? contentComponent : miniMessage.deserialize(msgOthers))
-        );
+        // The clan tag and the suffix are rendered once; a variant for a viewer who hid them swaps them for nothing.
+        Component clanComponent = displayTag(author, "chat.display.clan", "");
+        Component suffixComponent = displayTag(author, "chat.display.suffix", "%lovesubnames_current%");
+        String fullFormat = format + editedMark;
+        final String finalMsgOthers = msgOthers;
+        final Component finalContent = contentComponent;
+        final String finalMessage = messageForFormat;
 
-        Map<UUID, Component> mentionedComps = buildMentionedComponents(mentionedPlayers, messageForFormat, format + editedMark, playerComponent, formatTarget, formatOthers);
+        java.util.function.IntFunction<RenderedMessage.Variant> variantFor = hidden -> {
+            TagResolver tags = TagResolver.resolver(
+                    Placeholder.component("clan", (hidden & DisplayTags.HIDE_CLAN) != 0 ? Component.empty() : clanComponent),
+                    Placeholder.component("suffix", (hidden & DisplayTags.HIDE_SUFFIX) != 0 ? Component.empty() : suffixComponent));
+            Component base = miniMessage.deserialize(fullFormat,
+                    Placeholder.component("player", playerComponent),
+                    Placeholder.component("message", mentionedPlayers.isEmpty() ? finalContent : miniMessage.deserialize(finalMsgOthers)),
+                    tags);
+            return new RenderedMessage.Variant(base, mentionedTexts(mentionedPlayers, finalMessage, fullFormat,
+                    playerComponent, formatTarget, formatOthers, tags));
+        };
+
+        RenderedMessage.Variant full = variantFor.apply(0);
+        notifyMentioned(mentionedPlayers);
 
         String buttons = buildButtons(messageId);
 
-        return new RenderedMessage(author.uuid(), baseComponent, mentionedComps, mentionedPlayers, buttons);
+        // Variants without the tags are built on demand and kept: most messages only ever need one or two.
+        Map<Integer, RenderedMessage.Variant> cache = new ConcurrentHashMap<>();
+        IntFunction<RenderedMessage.Variant> hiddenVariants = hidden -> cache.computeIfAbsent(hidden, variantFor::apply);
+        return new RenderedMessage(author.uuid(), full.baseComponent(), full.mentionedComponents(), mentionedPlayers,
+                buttons, DisplayTags.hasTags(format) ? hiddenVariants : null);
+    }
+
+    /**
+     * Text of the author's clan tag or suffix inside its decoration ({@code chat.display.<name>.format}); empty when
+     * the author has none. The value comes from {@code chat.display.<name>.placeholder} through PlaceholderAPI; for
+     * the clan tag an empty placeholder means the LoveCore clan tag.
+     */
+    private Component displayTag(RenderAuthor author, String path, String defaultPlaceholder) {
+        String placeholder = plugin.getConfig().getString(path + ".placeholder", defaultPlaceholder);
+        String value = "";
+        if (placeholder != null && !placeholder.isBlank()) {
+            if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                value = PlaceholderAPI.setPlaceholders(author.papiTarget(), placeholder);
+                if (value.equals(placeholder)) {
+                    value = ""; // unresolved token: the placeholder is not registered, show nothing
+                }
+            }
+        } else if (path.endsWith("clan")) {
+            try {
+                value = dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.social.ProfileOracle.class)
+                        .flatMap(oracle -> oracle.clanTag(author.uuid()))
+                        .orElse("");
+            } catch (LinkageError coreMissingOrOld) {
+                value = "";
+            }
+        }
+        String decorated = DisplayTags.decorate(plugin.getConfig().getString(path + ".format", "%tag%"),
+                LegacyCodeSanitizer.toMiniMessage(value));
+        return decorated.isEmpty() ? Component.empty() : miniMessage.deserialize(decorated);
     }
 
     // ========================================================== //
@@ -488,13 +554,9 @@ public class MessageRenderer {
                 .clickEvent(ClickEvent.runCommand(clickCmd));
     }
 
-    private Map<UUID, Component> buildMentionedComponents(Set<Player> mentionedPlayers, String message, String format, Component playerComponent, String formatTarget, String formatOthers) {
+    private Map<UUID, Component> mentionedTexts(Set<Player> mentionedPlayers, String message, String format, Component playerComponent, String formatTarget, String formatOthers, TagResolver extra) {
         Map<UUID, Component> mentionedComps = new HashMap<>();
         if (mentionedPlayers.isEmpty()) return mentionedComps;
-
-        String soundConfig = plugin.getConfig().getString("mentions.sound");
-        String soundNameStr = soundConfig != null ? soundConfig : "entity.experience_orb.pickup";
-        Key soundKey = Key.key(soundNameStr.contains(":") ? soundNameStr : "minecraft:" + soundNameStr.toLowerCase(Locale.ROOT));
 
         // Both replacement strings only depend on t2, not on target - precompute them once per
         // mentioned player instead of recomputing formatTarget/formatOthers.replace() inside the
@@ -516,9 +578,22 @@ public class MessageRenderer {
 
             mentionedComps.put(target.getUniqueId(), miniMessage.deserialize(format,
                     Placeholder.component("player", playerComponent),
-                    Placeholder.component("message", miniMessage.deserialize(msgTarget))
+                    Placeholder.component("message", miniMessage.deserialize(msgTarget)),
+                    extra
             ));
+        }
+        return mentionedComps;
+    }
 
+    /** Sound and action bar for every mentioned player; once per message, whatever the number of variants. */
+    private void notifyMentioned(Set<Player> mentionedPlayers) {
+        if (mentionedPlayers.isEmpty()) return;
+
+        String soundConfig = plugin.getConfig().getString("mentions.sound");
+        String soundNameStr = soundConfig != null ? soundConfig : "entity.experience_orb.pickup";
+        Key soundKey = Key.key(soundNameStr.contains(":") ? soundNameStr : "minecraft:" + soundNameStr.toLowerCase(Locale.ROOT));
+
+        for (Player target : mentionedPlayers) {
             if (!soundNameStr.equalsIgnoreCase("NONE")) {
                 try {
                     target.playSound(Sound.sound(soundKey, Sound.Source.MASTER, 1f, 1f));
@@ -536,7 +611,6 @@ public class MessageRenderer {
                 target.sendActionBar(miniMessage.deserialize(plugin.getConfig().getString("mentions.actionbar.text", "<gold>Вас упомянули в чате!</gold>")));
             }
         }
-        return mentionedComps;
     }
 
     private static String stripPlayerHoverClick(String format) {

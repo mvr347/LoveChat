@@ -80,6 +80,29 @@ moderation:
   spam-cooldown-ms: 500             # минимальная задержка между сообщениями
 ```
 
+### Тег клана и суффикс по выбору игрока
+
+Каждый игрок сам решает, показывать ли тег клана и суффикс в чате: свои для других и чужие для
+себя (команда `/display` из LoveEssential, выбор хранится у него). Чтобы выбор действовал, в
+`chat.default-format` (и в формате канала) нужны теги `<clan>` и `<suffix>`:
+
+```yaml
+chat:
+  default-format: "<clan><player><suffix>: <message>"
+  display:
+    clan:
+      placeholder: ""            # пусто - тег клана из LoveCore; можно указать свой PAPI
+      format: "<gray>[</gray>%tag%<gray>]</gray> "
+    suffix:
+      placeholder: "%lovesubnames_current%"
+      format: " %tag%"
+```
+
+Скобки и пробелы живут в `format`, поэтому скрытый тег или игрок без клана не оставляют пустых
+скобок. Пока в формате нет `<clan>` и `<suffix>`, личный выбор на чат не влияет. Без LoveEssential
+всё показано. Источник скинов (`integrations.skins`) по умолчанию `global`: следует общему
+переключателю `integrations.provider` в LoveCore, явное `cmi` или `loveessential` его перекрывает.
+
 ### Чат-пузыри
 
 ```yaml

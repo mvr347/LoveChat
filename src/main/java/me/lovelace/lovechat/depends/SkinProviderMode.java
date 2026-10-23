@@ -36,6 +36,17 @@ public enum SkinProviderMode {
         return configId;
     }
 
+    /**
+     * Value of {@code integrations.skins} when LoveCore cannot resolve it: {@code global} and blank mean
+     * the historical default ({@link #CMI}), anything else stays as written.
+     */
+    public static @NotNull String withoutCore(@Nullable String raw) {
+        if (raw == null || raw.isBlank() || raw.trim().equalsIgnoreCase("global")) {
+            return DEFAULT.configId;
+        }
+        return raw;
+    }
+
     public static @NotNull Parsed parse(@Nullable String raw) {
         if (raw == null) {
             return new Parsed(DEFAULT, true);
