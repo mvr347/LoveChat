@@ -92,14 +92,17 @@ chat:
   display:
     clan:
       placeholder: ""            # пусто - тег клана из LoveCore; можно указать свой PAPI
-      format: "<gray>[</gray>%tag%<gray>]</gray> "
+      format: "🏰 <gray>[</gray><aqua>%tag%</aqua><gray>]</gray> "
     suffix:
       placeholder: "%lovesubnames_current%"
       format: " %tag%"
 ```
 
-Скобки и пробелы живут в `format`, поэтому скрытый тег или игрок без клана не оставляют пустых
-скобок. Пока в формате нет `<clan>` и `<suffix>`, личный выбор на чат не влияет. Без LoveEssential
+Значок 🏰, скобки и пробелы настраиваются в `chat.display.clan.format`: `%tag%` заменяется
+тегом клана. В формате сообщения оставьте только `<clan>`, без отдельного `🏰` перед ним.
+Тогда `/display` скрывает весь блок вместе со значком; у игрока без клана он тоже отсутствует.
+Для другого значка достаточно изменить `chat.display.clan.format` и выполнить `/lovechatadmin reload`.
+Существующий серверный `config.yml` при обновлении JAR автоматически не заменяется. Пока в формате нет `<clan>` и `<suffix>`, личный выбор на чат не влияет. Без LoveEssential
 всё показано. Источник скинов (`integrations.skins`) по умолчанию `global`: следует общему
 переключателю `integrations.provider` в LoveCore, явное `cmi` или `loveessential` его перекрывает.
 
