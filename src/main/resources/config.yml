@@ -25,7 +25,7 @@ chat:
   # Формат сообщения по умолчанию
   # <player> - имя игрока с головой, hover и click
   # <delete_edit_buttons> - кнопки удаления/редактирования
-  default-format: "<delete_edit_buttons><hover:show_text:'<gray>Кликни для /msg <player>'><click:suggest_command:'/msg <player> '><player></click></hover>: <gradient:#FFAA00:#FF0000><message></gradient>"
+  default-format: "<delete_edit_buttons><clan><hover:show_text:'<gray>Кликни для /msg <player>'><click:suggest_command:'/msg <player> '><player></click></hover><suffix>: <gradient:#FFAA00:#FF0000><message></gradient>"
   # Формат для player-format (используется в некоторых местах)
   player-format: "<player>"
   # Тег клана и суффикс в формате (добавлено 2026-10-23). Игрок сам включает и выключает их командой
@@ -40,7 +40,7 @@ chat:
       placeholder: ""
       # Как выглядит тег, когда показан; %tag% - значение. Пробел и скобки здесь, а не в формате:
       # когда тег скрыт или у игрока нет клана, исчезает всё вместе, и пустых скобок не остаётся.
-      format: "<gray>[</gray>%tag%<gray>]</gray> "
+      format: "<gray>[</gray><aqua>%tag%</aqua><gray>]</gray> "
     suffix:
       # PAPI-плейсхолдер с суффиксом. LoveSubnames отдаёт его так же, как в TAB LoveEssential.
       placeholder: "%lovesubnames_current%"
@@ -93,7 +93,7 @@ colors:
       name: "Локальный"
       prefix: ""
       radius: 200
-      format: "<delete_edit_buttons><gray>[L] </gray><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <white><message></white>"
+      format: "<delete_edit_buttons><gray>[L] </gray><clan><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover><suffix>: <white><message></white>"
       permission: "lovechat.local"
       command:
         - local
@@ -106,7 +106,7 @@ colors:
       name: "Глобальный"
       prefix: "!"
       radius: -1
-      format: "<delete_edit_buttons><yellow>[G] </yellow><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <gradient:#FFAA00:#FF0000><message></gradient>"
+      format: "<delete_edit_buttons><yellow>[G] </yellow><clan><hover:show_text:'<gray>Кликни для /msg %player_name%'><click:suggest_command:'/msg %player_name%'> <player></click></hover><suffix>: <gradient:#FFAA00:#FF0000><message></gradient>"
       permission: "lovechat.global"
       command:
         - global
@@ -117,7 +117,7 @@ colors:
       name: "Админ"
       prefix: "adm"
       radius: -1
-      format: "<delete_edit_buttons><red>[A] </red><hover:show_text:'<red>Администратор'><click:suggest_command:'/msg %player_name%'> <player></click></hover>: <red><message></red>"
+      format: "<delete_edit_buttons><red>[A] </red><clan><hover:show_text:'<red>Администратор'><click:suggest_command:'/msg %player_name%'> <player></click></hover><suffix>: <red><message></red>"
       permission: "lovechat.admin"
       command:
         - adm
