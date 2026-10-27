@@ -111,6 +111,8 @@ public final class MessageActions implements Listener {
         }
         final String savedText = text;
         player.getScheduler().run(plugin, task -> {
+            // The commands this replaced went through the disabled-worlds guard; so must the buttons.
+            if (plugin.isWorldDisabled(player.getWorld().getName())) return;
             if (edit) openEdit(player, messageId);
             else if (delete) requestDelete(player, messageId);
             else saveEdit(player, messageId, savedText);

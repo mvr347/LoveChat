@@ -278,7 +278,7 @@ public class ChatHistoryManager {
                     : replaceLine(history, messageId, replacement);
             if (snapshot == null) continue;
 
-            p.getScheduler().run(plugin, scheduledTask -> redraw(p, snapshot), null);
+            p.getScheduler().run(plugin, scheduledTask -> redraw(p, history), null);
         }
         // The line disappearing (or turning into the replacement) is the confirmation for a player;
         // a console or another plugin calling this gets one explicit line.
@@ -357,7 +357,7 @@ public class ChatHistoryManager {
             List<ChatLine> snapshot = replaceLine(history, messageId, newComponent);
             if (snapshot == null) continue;
 
-            p.getScheduler().run(plugin, scheduledTask -> redraw(p, snapshot), null);
+            p.getScheduler().run(plugin, scheduledTask -> redraw(p, history), null);
         }
     }
 
@@ -411,8 +411,14 @@ public class ChatHistoryManager {
      * исчезает, остальное (включая системные сообщения других плагинов) остаётся на местах;
      * клиент применяет сообщение целиком за один кадр, поэтому чат не моргает.
      */
-    private void redraw(@NotNull Player p, @NotNull List<ChatLine> lines) {
+    private void redraw(@NotNull Player p, @NotNull List<ChatLine> history) {
         if (!p.isOnline()) return;
+        // Copied now, not when the task was queued: a line that arrived in between would otherwise
+        // be cleared by the redraw and never replayed.
+        List<ChatLine> lines;
+        synchronized (history) {
+            lines = new ArrayList<>(history);
+        }
         sendTracked(p, buildRedraw(lines));
     }
 }
