@@ -4,7 +4,6 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import me.lovelace.lovechat.Lovechat;
 import me.lovelace.lovechat.managers.ChatBubbleManager;
 import me.lovelace.lovechat.managers.ChatHistoryManager;
-import me.lovelace.lovechat.managers.EditSessionManager;
 import me.lovelace.lovechat.render.MessageRenderer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -20,7 +19,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import me.lovelace.lovechat.api.LovechatAPI.LovechatMessageEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -92,6 +91,7 @@ public class ChatListener implements Listener {
         plugin.getDatabaseManager().getTagsDisabled(uuid).thenAccept(disabled -> {
             if (disabled) plugin.setTagsDisabled(uuid, true);
         });
+        if (plugin.getChatHook() != null) plugin.getChatHook().inject(player);
 
     }
 
@@ -99,7 +99,6 @@ public class ChatListener implements Listener {
     @SuppressWarnings("unused")
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
-        plugin.removeEditSession(uuid);
         plugin.removeDefaultChannel(uuid);
         staffCooldowns.remove(uuid);
         plugin.getMessageRenderer().clearEveryoneCooldown(uuid);
@@ -112,13 +111,21 @@ public class ChatListener implements Listener {
         for (Map<UUID, Deque<Long>> map : channelMessageTimestamps.values()) map.remove(uuid);
         chatBubbleManager.removeBubble(uuid);
         plugin.removeLastMessageId(uuid);
+        plugin.getChatHistoryManager().forget(uuid);
+        if (plugin.getChatHook() != null) plugin.getChatHook().uninject(uuid);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    @SuppressWarnings("unused")
+    public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
+        if (plugin.getChatHook() != null) plugin.getChatHook().refreshWorld(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     @SuppressWarnings("unused")
     public void onModernChat(@NotNull AsyncChatEvent event) {
         Player player = event.getPlayer();
-        if (!isAuthenticated(player)) {
+        if (!plugin.isAuthenticated(player)) {
             event.setCancelled(true);
             return;
         }
@@ -126,8 +133,6 @@ public class ChatListener implements Listener {
         Component incomingMessageComponent = event.message();
         String rawMessage = PlainTextComponentSerializer.plainText().serialize(incomingMessageComponent);
         boolean useIncomingComponent = !isPlainTextComponent(incomingMessageComponent, rawMessage);
-
-        if (handleEditSession(event, player, rawMessage, incomingMessageComponent)) return;
 
         event.setCancelled(true);
 
@@ -206,26 +211,6 @@ public class ChatListener implements Listener {
                 chatBubbleManager.showBubble(player, finalMessage, finalChannel);
             }
         });
-    }
-
-    private boolean handleEditSession(AsyncChatEvent event, Player player, String rawMessage, Component incomingMessageComponent) {
-        EditSessionManager.EditSession session = plugin.getEditSession(player.getUniqueId());
-        if (session == null) return false;
-        event.setCancelled(true);
-        // AsyncChatEvent runs off the main/region thread; editMessageVisual and sendMessage use
-        // PlaceholderAPI/Bukkit, so hop to the player's scheduler exactly like the normal send path.
-        final UUID uuid = player.getUniqueId();
-        final int messageId = session.messageId();
-        // The session map is concurrent; consume the session now so a second message cannot reuse it.
-        plugin.removeEditSession(uuid);
-        player.getScheduler().run(plugin, scheduledTask -> {
-            if (rawMessage.equalsIgnoreCase("cancel")) {
-                plugin.sendMessage(player, "edit-cancelled-click");
-                return;
-            }
-            plugin.editMessageVisual(messageId, rawMessage, incomingMessageComponent, player);
-        }, null);
-        return true;
     }
 
     private record ChannelPrefixMatch(String channel, String message, Component component) {}
@@ -379,31 +364,5 @@ public class ChatListener implements Listener {
 
     private static boolean isPlainTextComponent(@NotNull Component component, @NotNull String plainText) {
         return Component.text(plainText).equals(component);
-    }
-
-    /**
-     * Не кэшируем Optional<AuthOracle> — сосед может зарегистрировать реализацию позже,
-     * см. LoveCore.service(...) javadoc в LoveCore. Если LoveAuth не установлен, сервис
-     * просто не найдётся, и чат ничем не блокируется.
-     */
-    private boolean isAuthenticated(@NotNull Player player) {
-        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.auth.AuthOracle.class)
-                .map(oracle -> oracle.isAuthenticated(player.getUniqueId()))
-                .orElse(true);
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    @SuppressWarnings("unused")
-    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        Player player = event.getPlayer();
-        if (plugin.isWorldDisabled(player.getWorld().getName())) return;
-        String cmd = event.getMessage().toLowerCase();
-
-        if (cmd.equals("/medit cancel") || cmd.equals("/cancel")) return;
-
-        if (plugin.getEditSession(player.getUniqueId()) != null) {
-            plugin.removeEditSession(player.getUniqueId());
-            plugin.sendMessage(player, "edit-cancelled-command");
-        }
     }
 }

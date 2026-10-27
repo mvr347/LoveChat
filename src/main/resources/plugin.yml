@@ -3,7 +3,7 @@ version: "3.0"
 main: me.lovelace.lovechat.Lovechat
 api-version: '26.2'
 depend: [LoveCore, LoveEssential]
-softdepend: [PlaceholderAPI, CMI, ProtocolLib]
+softdepend: [PlaceholderAPI, CMI]
 libraries:
   - "com.github.ben-manes.caffeine:caffeine:3.1.8"
 commands:
@@ -20,12 +20,6 @@ commands:
   ignorechat:
     description: Игнорировать игрока
     aliases: [chatignore]
-  messagedelete:
-    description: Удалить сообщение
-    aliases: [md]
-  messageedit:
-    description: Редактировать сообщение
-    aliases: [medit]
   silent:
     description: Включить/выключить тихий режим
   chatclear:

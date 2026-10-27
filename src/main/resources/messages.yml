@@ -33,22 +33,24 @@ channel-max-per-minute: "<red>Слишком много сообщений в к
 #      УПРАВЛЕНИЕ СООБЩЕНИЯМИ                #
 # ========================================== #
 # Удаление сообщений
-delete-success: "<green>Сообщение #{id} удалено!</green>"
 delete-not-found: "<red>Сообщение не найдено!</red>"
 invalid-message-id: "<red>Неверный номер сообщения!</red>"
 delete-not-yours: "<red>Вы можете удалять только свои сообщения!</red>"
 
 # Редактирование сообщений
-edit-success: "<green>Сообщение #{id} отредактировано!</green>"
 edit-cancelled: "<red>Редактирование отменено!</red>"
+edit-empty: "<red>Сообщение не может быть пустым!</red>"
 edit-not-found: "<red>Сообщение не найдено!</red>"
 edit-not-yours: "<red>Вы можете редактировать только свои сообщения!</red>"
-edit-prompt: "<yellow>Редактирование сообщения. Введите новое сообщение или измените старое.</yellow><newline><gray>Напишите </gray><red><click:run_command:'/medit cancel'><hover:show_text:'Нажмите для отмены'>cancel</hover></click></red><gray> для отмены.</gray>"
-edit-cancelled-command: "<yellow>Редактирование сброшено (введена команда).</yellow>"
-edit-cancelled-click: "<red>Редактирование отменено.</red>"
 edit-time-limit-exceeded: "<red>Время для редактирования этого сообщения истекло!</red>"
 edit-max-reached: "<red>Достигнут лимит редактирований этого сообщения!</red>"
 delete-time-limit-exceeded: "<red>Время для удаления этого сообщения истекло!</red>"
+
+# Окно редактирования (открывается по клику на [✎]; ответы об отказах показываются над хотбаром)
+edit-dialog-title: "<yellow>Изменить сообщение</yellow>"
+edit-dialog-input: "<gray>Текст сообщения</gray>"
+edit-dialog-save: "<green>Сохранить</green>"
+edit-dialog-cancel: "<red>Отмена</red>"
 
 # ========================================== #
 #         ИГНОР ЛИСТ                          #
