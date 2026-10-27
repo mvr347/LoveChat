@@ -49,5 +49,6 @@ class ChatRedrawTest {
         assertEquals(-1, MessageActions.parseId(BinaryTagHolder.binaryTagHolder("abc")));
         assertEquals(-1, MessageActions.parseId(BinaryTagHolder.binaryTagHolder("99999999999999")));
         assertEquals(-1, MessageActions.parseId(null));
+        assertEquals(42, MessageActions.parseId(BinaryTagHolder.binaryTagHolder("{id:42}")));
     }
 }

@@ -143,7 +143,8 @@ public class MessageRenderer {
             Component component = mentioned.getOrDefault(viewer.getUniqueId(), base);
 
             boolean isOwner = viewer.getUniqueId().equals(ownerUuid);
-            boolean isAdmin = viewer.hasPermission("lovechat.admin") || viewer.hasPermission("lovechat.moderation");
+            boolean isAdmin = viewer.hasPermission("lovechat.admin") || viewer.hasPermission("lovechat.moderation")
+                    || viewer.hasPermission("lovechat.edit.admin") || viewer.hasPermission("lovechat.delete.admin");
 
             if ((isOwner || isAdmin) && !Component.empty().equals(buttons)) {
                 component = component.append(buttons);

@@ -66,7 +66,12 @@ public final class MessageActions implements Listener {
         return BinaryTagHolder.binaryTagHolder(Integer.toString(messageId));
     }
 
-    /** Parses the id payload; {@code -1} when it is missing or not a number (a forged click). */
+    /** Dialog actions accept only a compound tag as additions, unlike chat clicks. */
+    private static BinaryTagHolder dialogPayload(int messageId) {
+        return BinaryTagHolder.binaryTagHolder("{id:" + messageId + "}");
+    }
+
+    /** Parses the id payload (a bare number from chat, {@code {id:N}} from the dialog); {@code -1} when it is missing or not a number (a forged click). */
     static int parseId(@Nullable BinaryTagHolder tag) {
         if (tag == null) return -1;
         Matcher matcher = ID.matcher(tag.string());
@@ -189,7 +194,7 @@ public final class MessageActions implements Listener {
                 .maxLength(maxLength)
                 .build();
         ActionButton save = ActionButton.builder(saveLabel)
-                .action(DialogAction.customClick(SAVE, payload(messageId)))
+                .action(DialogAction.customClick(SAVE, dialogPayload(messageId)))
                 .build();
         // No action: the button just closes the dialog.
         ActionButton cancel = ActionButton.builder(cancelLabel).build();
