@@ -15,11 +15,13 @@ public final class SharedIgnore {
     private final Plugin owner;
     private final Method isIgnoring;
     private final Method importIgnore;
+    private final Method setIgnored;
 
-    private SharedIgnore(Plugin owner, Method isIgnoring, Method importIgnore) {
+    private SharedIgnore(Plugin owner, Method isIgnoring, Method importIgnore, Method setIgnored) {
         this.owner = owner;
         this.isIgnoring = isIgnoring;
         this.importIgnore = importIgnore;
+        this.setIgnored = setIgnored;
     }
 
     /** Looks the provider up each time it is needed: it may load after or reload before LoveChat. */
@@ -29,7 +31,8 @@ public final class SharedIgnore {
         try {
             Method ignoring = owner.getClass().getMethod("isIgnoring", UUID.class, UUID.class);
             Method imported = owner.getClass().getMethod("importIgnore", Player.class, UUID.class);
-            return new SharedIgnore(owner, ignoring, imported);
+            Method set = owner.getClass().getMethod("setIgnored", Player.class, UUID.class, boolean.class);
+            return new SharedIgnore(owner, ignoring, imported, set);
         } catch (ReflectiveOperationException missing) {
             return null;
         }
@@ -47,6 +50,15 @@ public final class SharedIgnore {
     public boolean importIgnore(Player who, UUID target) {
         try {
             return (boolean) importIgnore.invoke(owner, who, target);
+        } catch (ReflectiveOperationException | RuntimeException failed) {
+            return false;
+        }
+    }
+
+    /** Adds or removes an entry in the shared list; false means it was not ready. */
+    public boolean setIgnored(Player who, UUID target, boolean ignore) {
+        try {
+            return (boolean) setIgnored.invoke(owner, who, target, ignore);
         } catch (ReflectiveOperationException | RuntimeException failed) {
             return false;
         }

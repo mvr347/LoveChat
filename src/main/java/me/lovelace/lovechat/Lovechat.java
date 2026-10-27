@@ -270,15 +270,28 @@ public final class Lovechat extends JavaPlugin {
     public void migrateIgnores(@NotNull org.bukkit.entity.Player player, @NotNull Set<UUID> ignores) {
         var shared = me.lovelace.lovechat.depends.SharedIgnore.find();
         if (shared == null || ignores.isEmpty()) return;
-        boolean all = true;
-        for (UUID target : ignores) all &= shared.importIgnore(player, target);
-        if (all) {
-            databaseManager.clearIgnores(player.getUniqueId());
-            clearIgnoredMemory(player.getUniqueId());
+        // Each entry leaves the local list on its own once imported; only failures wait for the next join.
+        for (UUID target : ignores) {
+            if (!shared.importIgnore(player, target)) continue;
+            Set<UUID> local = ignoredPlayers.get(player.getUniqueId());
+            if (local != null) local.remove(target);
+            databaseManager.removeIgnore(player.getUniqueId(), target);
         }
     }
     public int getIgnoredCount(@NotNull UUID uuid) { Set<UUID> ignoredSet = ignoredPlayers.get(uuid); return ignoredSet == null ? 0 : ignoredSet.size(); }
     public void toggleIgnore(@NotNull UUID ignorer, @NotNull UUID ignored) {
+        // Once the shared list exists it is the one to change, or a migrated entry could never be removed.
+        var shared = me.lovelace.lovechat.depends.SharedIgnore.find();
+        var online = org.bukkit.Bukkit.getPlayer(ignorer);
+        if (shared != null && online != null) {
+            boolean currently = shared.isIgnoring(ignorer, ignored) || isIgnoringLocally(ignorer, ignored);
+            if (shared.setIgnored(online, ignored, !currently)) {
+                // Whatever the old list held is now represented by the shared one.
+                ignoredPlayers.getOrDefault(ignorer, Set.of()).remove(ignored);
+                databaseManager.removeIgnore(ignorer, ignored);
+                return;
+            }
+        }
         Set<UUID> ignoredSet = ignoredPlayers.computeIfAbsent(ignorer, k -> ConcurrentHashMap.newKeySet());
         if (!ignoredSet.remove(ignored)) {
             ignoredSet.add(ignored);
