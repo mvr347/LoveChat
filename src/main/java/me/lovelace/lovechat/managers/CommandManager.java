@@ -33,7 +33,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             .maximumSize(5000)
             .expireAfterWrite(10, TimeUnit.SECONDS)
             .build();
-    private static final long TOGGLE_COOLDOWN_MILLIS = 1500L;
+    private static final long TOGGLE_COOLDOWN_MILLIS = 500L;
 
     public CommandManager(@NotNull Lovechat plugin) {
         this.plugin = plugin;
@@ -252,6 +252,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
             if (target.hasPermission("lovechat.admin") && plugin.getConfig().getBoolean("ignore.admins-bypass", true)) {
                 plugin.sendMessage(p, "ignore-admin");
+                return;
+            }
+
+            // One list for chat, private messages and requests: LoveEssential owns it.
+            if (me.lovelace.lovechat.depends.SharedIgnore.find() != null) {
+                Bukkit.dispatchCommand(p, "loveessential:ignore " + target.getName());
                 return;
             }
 
