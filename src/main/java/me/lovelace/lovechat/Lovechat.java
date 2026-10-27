@@ -341,4 +341,15 @@ public final class Lovechat extends JavaPlugin {
     public boolean isWorldDisabled(@NotNull String worldName) {
         return disabledWorlds.contains(worldName.toLowerCase(Locale.ROOT));
     }
+
+    /**
+     * Не кэшируем Optional<AuthOracle> — сосед может зарегистрировать реализацию позже,
+     * см. LoveCore.service(...) javadoc в LoveCore. Если LoveAuth не установлен, сервис
+     * просто не найдётся, и чат ничем не блокируется.
+     */
+    public boolean isAuthenticated(@NotNull Player player) {
+        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.auth.AuthOracle.class)
+                .map(oracle -> oracle.isAuthenticated(player.getUniqueId()))
+                .orElse(true);
+    }
 }

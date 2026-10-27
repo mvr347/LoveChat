@@ -113,6 +113,8 @@ public final class MessageActions implements Listener {
         player.getScheduler().run(plugin, task -> {
             // The commands this replaced went through the disabled-worlds guard; so must the buttons.
             if (plugin.isWorldDisabled(player.getWorld().getName())) return;
+            // Same gate chat messages pass: an unauthenticated session must not rewrite the account's lines.
+            if (!plugin.isAuthenticated(player)) return;
             if (edit) openEdit(player, messageId);
             else if (delete) requestDelete(player, messageId);
             else saveEdit(player, messageId, savedText);
