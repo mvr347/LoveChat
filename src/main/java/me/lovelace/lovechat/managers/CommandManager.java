@@ -33,7 +33,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             .maximumSize(5000)
             .expireAfterWrite(10, TimeUnit.SECONDS)
             .build();
-    private static final long TOGGLE_COOLDOWN_MILLIS = 1500L;
+    private static final long TOGGLE_COOLDOWN_MILLIS = 500L;
 
     public CommandManager(@NotNull Lovechat plugin) {
         this.plugin = plugin;
