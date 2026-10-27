@@ -19,7 +19,7 @@ commands:
     aliases: [ch, c]
   ignorechat:
     description: Игнорировать игрока
-    aliases: [ignore]
+    aliases: [chatignore]
   messagedelete:
     description: Удалить сообщение
     aliases: [md]

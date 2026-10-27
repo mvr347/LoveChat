@@ -257,7 +257,26 @@ public final class Lovechat extends JavaPlugin {
         // Saved on every change: the cache is reloaded from the database on join, so an unsaved toggle used to be lost.
         databaseManager.saveTagsDisabled(uuid, tagsDisabledPlayers.contains(uuid));
     }
-    public boolean isIgnoring(@NotNull UUID ignorer, @NotNull UUID ignored) { Set<UUID> ignoredSet = ignoredPlayers.get(ignorer); return ignoredSet != null && ignoredSet.contains(ignored); }
+    public boolean isIgnoring(@NotNull UUID ignorer, @NotNull UUID ignored) {
+        var shared = me.lovelace.lovechat.depends.SharedIgnore.find();
+        if (shared != null && shared.isIgnoring(ignorer, ignored)) return true;
+        return isIgnoringLocally(ignorer, ignored);
+    }
+    private boolean isIgnoringLocally(@NotNull UUID ignorer, @NotNull UUID ignored) { Set<UUID> ignoredSet = ignoredPlayers.get(ignorer); return ignoredSet != null && ignoredSet.contains(ignored); }
+    /**
+     * Moves a player's old LoveChat list into the shared one. Entries that cannot be imported yet
+     * stay in the table and are retried on the next join.
+     */
+    public void migrateIgnores(@NotNull org.bukkit.entity.Player player, @NotNull Set<UUID> ignores) {
+        var shared = me.lovelace.lovechat.depends.SharedIgnore.find();
+        if (shared == null || ignores.isEmpty()) return;
+        boolean all = true;
+        for (UUID target : ignores) all &= shared.importIgnore(player, target);
+        if (all) {
+            databaseManager.clearIgnores(player.getUniqueId());
+            clearIgnoredMemory(player.getUniqueId());
+        }
+    }
     public int getIgnoredCount(@NotNull UUID uuid) { Set<UUID> ignoredSet = ignoredPlayers.get(uuid); return ignoredSet == null ? 0 : ignoredSet.size(); }
     public void toggleIgnore(@NotNull UUID ignorer, @NotNull UUID ignored) {
         Set<UUID> ignoredSet = ignoredPlayers.computeIfAbsent(ignorer, k -> ConcurrentHashMap.newKeySet());

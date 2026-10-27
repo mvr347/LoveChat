@@ -81,7 +81,14 @@ public class ChatListener implements Listener {
         plugin.getDatabaseManager().getDefaultChannel(uuid).thenAccept(channel -> {
             if (channel != null) plugin.setDefaultChannel(uuid, channel);
         });
-        plugin.getDatabaseManager().getIgnores(uuid).thenAccept(ignores -> plugin.loadIgnores(uuid, ignores));
+        plugin.getDatabaseManager().getIgnores(uuid).thenAccept(ignores -> {
+            plugin.loadIgnores(uuid, ignores);
+            if (ignores.isEmpty()) return;
+            // The shared list is loaded asynchronously by LoveEssential; give it a moment.
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) plugin.migrateIgnores(player, ignores);
+            }, 100L);
+        });
         plugin.getDatabaseManager().getTagsDisabled(uuid).thenAccept(disabled -> {
             if (disabled) plugin.setTagsDisabled(uuid, true);
         });

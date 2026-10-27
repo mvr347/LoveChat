@@ -255,6 +255,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return;
             }
 
+            // One list for chat, private messages and requests: LoveEssential owns it.
+            if (me.lovelace.lovechat.depends.SharedIgnore.find() != null) {
+                Bukkit.dispatchCommand(p, "loveessential:ignore " + target.getName());
+                return;
+            }
+
             if (isOnCooldown(p, "ignorechat")) return;
 
             if (!plugin.isIgnoring(p.getUniqueId(), target.getUniqueId())) {
