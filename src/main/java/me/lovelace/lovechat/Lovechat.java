@@ -272,6 +272,8 @@ public final class Lovechat extends JavaPlugin {
         if (shared == null || ignores.isEmpty()) return;
         // Each entry leaves the local list on its own once imported; only failures wait for the next join.
         for (UUID target : ignores) {
+            // Skip entries unignored while the migration was waiting.
+            if (!isIgnoringLocally(player.getUniqueId(), target)) continue;
             if (!shared.importIgnore(player, target)) continue;
             Set<UUID> local = ignoredPlayers.get(player.getUniqueId());
             if (local != null) local.remove(target);
@@ -287,7 +289,8 @@ public final class Lovechat extends JavaPlugin {
             boolean currently = shared.isIgnoring(ignorer, ignored) || isIgnoringLocally(ignorer, ignored);
             if (shared.setIgnored(online, ignored, !currently)) {
                 // Whatever the old list held is now represented by the shared one.
-                ignoredPlayers.getOrDefault(ignorer, Set.of()).remove(ignored);
+                Set<UUID> local = ignoredPlayers.get(ignorer);
+                if (local != null) local.remove(ignored);
                 databaseManager.removeIgnore(ignorer, ignored);
                 return;
             }
