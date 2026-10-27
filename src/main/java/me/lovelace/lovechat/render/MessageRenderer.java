@@ -5,6 +5,7 @@ import me.lovelace.lovechat.Lovechat;
 import me.lovelace.lovechat.depends.CMISkinUtil;
 import me.lovelace.lovechat.depends.HeadComponentUtil;
 import me.lovelace.lovechat.managers.ChatHistoryManager.MessageData;
+import me.lovelace.lovechat.managers.MessageActions;
 import me.lovelace.lovechat.utils.LegacyCodeSanitizer;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
@@ -114,14 +115,14 @@ public class MessageRenderer {
 
     /**
      * Результат рендера: базовый компонент, персональные варианты для упомянутых игроков
-     * (другой текст упоминания для цели/остальных) и MiniMessage-кнопки редактирования/удаления.
+     * (другой текст упоминания для цели/остальных) и кнопки редактирования/удаления.
      * {@link #forViewer(Player)} применяет per-viewer логику (какой вариант компонента показать,
      * добавлять ли кнопки) — эта логика идентична и для рассылки нового сообщения, и для
      * точечного обновления строки в истории при редактировании (см. {@code ChatHistoryManager}).
      */
     public record RenderedMessage(UUID ownerUuid, Component baseComponent,
                                    Map<UUID, Component> mentionedComponents,
-                                   Set<Player> mentionedPlayers, String buttons,
+                                   Set<Player> mentionedPlayers, Component buttons,
                                    IntFunction<Variant> hiddenVariants) {
 
         /** The message as one group of viewers sees it: base text and the personal mention texts. */
@@ -144,8 +145,8 @@ public class MessageRenderer {
             boolean isOwner = viewer.getUniqueId().equals(ownerUuid);
             boolean isAdmin = viewer.hasPermission("lovechat.admin") || viewer.hasPermission("lovechat.moderation");
 
-            if ((isOwner || isAdmin) && !buttons.isEmpty()) {
-                component = component.append(MiniMessage.miniMessage().deserialize(buttons));
+            if ((isOwner || isAdmin) && !Component.empty().equals(buttons)) {
+                component = component.append(buttons);
             }
             return component;
         }
@@ -154,7 +155,7 @@ public class MessageRenderer {
     /**
      * Строит отображаемое сообщение чата для {@code messageId}.
      *
-     * @param messageId        ID сообщения (нужен для click-команд кнопок /medit и /md)
+     * @param messageId        ID сообщения (его несут клики кнопок редактирования и удаления)
      * @param data             данные сообщения (владелец, канал, сырой текст, счётчик редактирований)
      * @param author           контекст автора для рендера (см. {@link RenderAuthor})
      * @param overrideContent  если не {@code null} — используется как есть в качестве содержимого
@@ -226,7 +227,7 @@ public class MessageRenderer {
         RenderedMessage.Variant full = variantFor.apply(0);
         notifyMentioned(mentionedPlayers);
 
-        String buttons = buildButtons(messageId);
+        Component buttons = buildButtons(messageId);
 
         // Variants without the tags are built on demand and kept: most messages only ever need one or two.
         Map<Integer, RenderedMessage.Variant> cache = new ConcurrentHashMap<>();
@@ -269,23 +270,26 @@ public class MessageRenderer {
     // ========================================================== //
 
     /**
-     * Единственное место, где строится MiniMessage-строка кнопок [✎][x].
-     * Раньше эта конкатенация была продублирована в {@code ChatListener} и в
-     * {@code Lovechat#editMessageVisual} по отдельности.
+     * Единственное место, где строятся кнопки [✎][x]. Клик по кнопке — не команда, а custom click
+     * (см. {@link me.lovelace.lovechat.managers.MessageActions}): без служебных команд и без
+     * записей в чате. Возвращает {@link Component#empty()}, если обе кнопки выключены.
      */
-    public String buildButtons(int messageId) {
-        String editPrefix = "";
+    public Component buildButtons(int messageId) {
+        Component result = Component.empty();
         if (plugin.getConfig().getBoolean("messageedit.enabled", true)) {
-            editPrefix = " <hover:show_text:'<yellow>Изменить'><click:run_command:'/medit " + messageId + "'>"
-                    + plugin.getConfig().getString("messageedit.prefix", "<yellow>[✎]</yellow>") + "</click></hover>";
+            result = result.append(Component.space()).append(
+                    miniMessage.deserialize(plugin.getConfig().getString("messageedit.prefix", "<yellow>[✎]</yellow>"))
+                            .hoverEvent(HoverEvent.showText(miniMessage.deserialize("<yellow>Изменить")))
+                            .clickEvent(MessageActions.editClick(messageId)));
         }
-        String delPrefix = "";
         if (plugin.getConfig().getBoolean("messagedelete.enabled", true)) {
-            delPrefix = "<hover:show_text:'<red>Удалить'><click:run_command:'/md " + messageId + "'>"
-                    + plugin.getConfig().getString("messagedelete.prefix", "<dark_gray>[<red>x</red>]</dark_gray>") + "</click></hover>";
+            result = result.append(
+                    miniMessage.deserialize(plugin.getConfig().getString("messagedelete.prefix", "<dark_gray>[<red>x</red>]</dark_gray>"))
+                            .hoverEvent(HoverEvent.showText(miniMessage.deserialize("<red>Удалить")))
+                            .clickEvent(MessageActions.deleteClick(messageId)));
         }
         // Порядок: сначала редактировать, потом удалить
-        return editPrefix + delPrefix;
+        return result;
     }
 
     // ========================================================== //

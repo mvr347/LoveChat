@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,23 +31,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Хранит и мутирует историю чата: буфер отображённых строк на игрока, кэш данных сообщений
  * (для редактирования/удаления) и применение самих операций редактирования/удаления.
  * <p>
- * Раньше эта логика (вместе с рендером и сессиями редактирования) жила прямо в {@code Lovechat},
- * из-за чего главный класс плагина разросся в god-object. Теперь {@code Lovechat} — тонкий
- * composition root, который лишь создаёт и связывает менеджеры.
- * <p>
- * Обновление истории (item 2 code-review): раньше редактирование/удаление одной строки чата
- * полностью очищало клиентский чат (100 пустых строк) и заново пересылало ВСЮ историю игрока —
- * это моргало, сбивало прокрутку и роняло системные сообщения других плагинов, попавшие в узкое
- * временное окно {@code redrawIgnoreCache}. У протокола Minecraft (1.21.11, System Chat / Disguised
- * Chat пакеты, которыми и раньше, и сейчас пересылаются эти строки) нет пакета «заменить строку N»
- * или «удалить произвольную несигнатурную системную строку» — {@code ClientboundDeleteChatPacket}
- * работает только по подписи подписанных player chat сообщений, а Lovechat всегда отправляет
- * несигнатурные system chat сообщения. Поэтому истинный «point update» одной строки без пересылки
- * остального протоколом не поддерживается в принципе. Вместо этого теперь пересылается только
- * «хвост» истории — от изменённой/удалённой строки и до конца, без предварительной полной очистки:
- * это не трогает совсем ничего, что было до изменённой строки (включая перехваченные системные
- * сообщения других плагинов), и на порядок уменьшает и объём пересылки, и окно гонки, в которое
- * может попасть параллельное системное сообщение другого плагина.
+ * У протокола Minecraft нет пакета «заменить строку N», а {@code ClientboundDeleteChatPacket}
+ * удаляет только подписанные player-chat сообщения (на offline-mode сервере подписей нет, а
+ * Lovechat всегда шлёт несигнатурные system chat сообщения). Поэтому правка и удаление — это
+ * перерисовка чата: строка меняется на месте в истории игрока, после чего вся история уходит
+ * ОДНИМ сообщением («пустые строки» + строки истории). Клиент применяет такое сообщение целиком
+ * за один кадр, промежуточного пустого чата не существует — поэтому нет моргания, а старой копии
+ * строки на экране не остаётся. Сообщения других плагинов лежат в той же истории (их записывает
+ * {@code NettyChatHook}) и остаются на своих местах.
  */
 public class ChatHistoryManager {
 
@@ -76,18 +66,16 @@ public class ChatHistoryManager {
             .build();
 
     /**
-     * Точные строки (plain text), которые Lovechat сам только что переслал игроку при
-     * точечном обновлении хвоста истории. {@code ProtocolLibHook} сверяется с этим кэшем,
-     * чтобы не принять эхо собственной пересылки за новое системное сообщение другого плагина
-     * и не задублировать его в истории. Раньше это поле существовало, но не заполнялось —
-     * единственным механизмом подавления был грубый {@code redrawIgnoreCache} (булев флаг на
-     * 500 мс на игрока), из-за которого любое стороннее системное сообщение, попавшее в это
-     * окно, тихо терялось. Точное сопоставление по тексту вместо временного окна убирает эту
-     * гонку.
+     * Строки, которые Lovechat сам только что отправил игроку (новое сообщение или перерисовка).
+     * Перед отправкой текст регистрируется, а {@code NettyChatHook}, увидев такой же исходящий
+     * пакет, снимает запись и НЕ записывает пакет в историю как «чужое» сообщение. Так эхо
+     * собственной отправки отличается от системного сообщения другого плагина точным совпадением
+     * текста, а не временным окном, в которое попадало и чужое сообщение.
      */
-    private final Cache<UUID, List<String>> ignoredSentStrings = CacheBuilder.newBuilder()
-            .expireAfterWrite(3, TimeUnit.SECONDS)
-            .build();
+    private final OwnEchoes ownEchoes = new OwnEchoes();
+
+    /** Столько переводов строки вытесняют из клиентского буфера (100 строк) всё, что было до перерисовки. */
+    private static final int CLEAR_LINES = 100;
 
     private final Component clearChatComponent = buildClearChat();
 
@@ -98,7 +86,7 @@ public class ChatHistoryManager {
 
     private static Component buildClearChat() {
         Component comp = Component.empty();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < CLEAR_LINES; i++) {
             comp = comp.append(Component.newline());
         }
         return comp;
@@ -146,14 +134,14 @@ public class ChatHistoryManager {
                     "Не удалось добавить сообщение в историю чата", exception);
         }
 
-        player.sendMessage(component);
+        sendTracked(player, component);
     }
 
-    public void recordSystemMessageFromPacket(@NotNull Player player, @NotNull Component component) {
-        if (plugin.isWorldDisabled(player.getWorld().getName())) return;
+    /** Called by {@code NettyChatHook} (Netty thread) for a system message of another plugin. */
+    public void recordSystemMessageFromPacket(@NotNull UUID uuid, @NotNull Component component) {
         int messageId = getNextMessageId();
         try {
-            List<ChatLine> history = chatHistory.get(player.getUniqueId(), () -> Collections.synchronizedList(new LinkedList<>()));
+            List<ChatLine> history = chatHistory.get(uuid, () -> Collections.synchronizedList(new LinkedList<>()));
             synchronized (history) {
                 trimHistory(history);
                 history.add(new ChatLine(messageId, component, true));
@@ -208,25 +196,29 @@ public class ChatHistoryManager {
 
     public void clearChatForPlayer(@NotNull Player player, @SuppressWarnings("unused") boolean keepStaff) {
         if (plugin.isWorldDisabled(player.getWorld().getName())) return;
-        player.sendMessage(clearChatComponent);
+        sendTracked(player, clearChatComponent);
     }
 
-    public boolean shouldIgnorePacket(@NotNull UUID uuid, @NotNull String plainText) {
-        List<String> ignoredStrings = ignoredSentStrings.getIfPresent(uuid);
-        return ignoredStrings != null && ignoredStrings.contains(plainText);
+    /**
+     * Sends {@code component} to the player and registers it as our own, so that the packet hook
+     * does not record it in the history again.
+     */
+    private void sendTracked(@NotNull Player player, @NotNull Component component) {
+        ownEchoes.register(player.getUniqueId(), PlainTextComponentSerializer.plainText().serialize(component), System.nanoTime());
+        player.sendMessage(component);
     }
 
-    private void markResendIgnored(@NotNull UUID uuid, @NotNull Component component) {
-        String plain = PlainTextComponentSerializer.plainText().serialize(component);
-        try {
-            List<String> list = ignoredSentStrings.get(uuid, CopyOnWriteArrayList::new);
-            list.add(plain);
-        } catch (ExecutionException e) {
-            // Кэш недоступен — в худшем случае ProtocolLibHook один раз ошибочно задублирует
-            // это эхо в историю получателя; не стоит ронять из-за этого само редактирование.
-            plugin.getLogger().log(java.util.logging.Level.WARNING,
-                    "Failed to get ignored sent strings from cache for player " + uuid, e);
-        }
+    /**
+     * True (and the entry is consumed) when {@code plainText} is the echo of a message we sent to
+     * this player ourselves. Called from the Netty thread.
+     */
+    public boolean consumeOwnEcho(@NotNull UUID uuid, @NotNull String plainText) {
+        return ownEchoes.consume(uuid, plainText, System.nanoTime());
+    }
+
+    /** Forgets the per-player state of a player who left. */
+    public void forget(@NotNull UUID uuid) {
+        ownEchoes.forget(uuid);
     }
 
     // ========================================================== //
@@ -252,15 +244,15 @@ public class ChatHistoryManager {
         MessageData data = messageDataCache.getIfPresent(messageId);
         if (data != null) {
             // Как и в editMessageVisual (код-ревью, пункт 4): проверка владения дублируется
-            // здесь, у точки фактического удаления, а не только в CommandManager.
+            // здесь, у точки фактического удаления, а не только в слое кнопок.
             if (!canDelete(sender, data)) {
-                plugin.sendMessage(sender, "delete-not-yours");
+                plugin.notice(sender, "delete-not-yours");
                 return;
             }
         } else if (!(sender.hasPermission("lovechat.delete.admin") || sender.isOp())) {
             // Сообщение не отслеживается (например, устарело и выпало из кэша данных) — без
             // владельца безопасно разрешить удаление только администратору.
-            plugin.sendMessage(sender, "delete-not-found");
+            plugin.notice(sender, "delete-not-found");
             return;
         }
 
@@ -281,14 +273,18 @@ public class ChatHistoryManager {
             List<ChatLine> history = chatHistory.getIfPresent(p.getUniqueId());
             if (history == null) continue;
 
-            List<ChatLine> tail = fullDelete
-                    ? removeAndCopyTail(history, messageId)
-                    : replaceAndCopyTail(history, messageId, replacement);
-            if (tail == null) continue;
+            List<ChatLine> snapshot = fullDelete
+                    ? removeLine(history, messageId)
+                    : replaceLine(history, messageId, replacement);
+            if (snapshot == null) continue;
 
-            p.getScheduler().run(plugin, scheduledTask -> sendTail(p, tail), null);
+            p.getScheduler().run(plugin, scheduledTask -> redraw(p, snapshot), null);
         }
-        sender.sendMessage(MiniMessage.miniMessage().deserialize("<green>Сообщение #" + messageId + " удалено.</green>"));
+        // The line disappearing (or turning into the replacement) is the confirmation for a player;
+        // a console or another plugin calling this gets one explicit line.
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize("<green>Сообщение #" + messageId + " удалено.</green>"));
+        }
     }
 
     // ========================================================== //
@@ -302,18 +298,18 @@ public class ChatHistoryManager {
     public void editMessageVisual(int messageId, @NotNull String newText, @NotNull Component newTextComponent, @NotNull Player editor) {
         MessageData data = messageDataCache.getIfPresent(messageId);
         if (data == null) {
-            plugin.sendMessage(editor, "edit-not-found");
+            plugin.notice(editor, "edit-not-found");
             return;
         }
 
         // Пункт 4 код-ревью: раньше владение сообщением проверялось только в CommandManager
         // перед стартом сессии редактирования — сам editMessageVisual ничего не проверял.
         // Дублируем проверку здесь, у точки фактического применения правки, чтобы право
-        // нельзя было обойти, вызвав этот метод в обход командного слоя (API, другой плагин,
+        // нельзя было обойти, вызвав этот метод в обход слоя кнопок (API, другой плагин,
         // будущий GUI и т.д.), и чтобы права были актуальны на момент применения, а не на
-        // момент запуска сессии редактирования.
-        if (!EditSessionManager.canEdit(editor, data)) {
-            plugin.sendMessage(editor, "edit-not-yours");
+        // момент открытия окна редактирования.
+        if (!MessageActions.canEdit(editor, data)) {
+            plugin.notice(editor, "edit-not-yours");
             return;
         }
 
@@ -324,7 +320,7 @@ public class ChatHistoryManager {
         Bukkit.getPluginManager().callEvent(editEvent);
 
         if (editEvent.isCancelled()) {
-            plugin.sendMessage(editor, "edit-cancelled");
+            plugin.notice(editor, "edit-cancelled");
             return;
         }
 
@@ -348,8 +344,6 @@ public class ChatHistoryManager {
         MessageRenderer.RenderedMessage rendered = renderer.render(messageId, updated, author, overrideComponent);
 
         applyEditToHistory(messageId, rendered);
-
-        plugin.sendMessage(editor, "edit-success");
     }
 
     private void applyEditToHistory(int messageId, MessageRenderer.RenderedMessage rendered) {
@@ -360,39 +354,38 @@ public class ChatHistoryManager {
             if (history == null) continue;
 
             Component newComponent = rendered.forViewer(p);
-            List<ChatLine> tail = replaceAndCopyTail(history, messageId, newComponent);
-            if (tail == null) continue;
+            List<ChatLine> snapshot = replaceLine(history, messageId, newComponent);
+            if (snapshot == null) continue;
 
-            p.getScheduler().run(plugin, scheduledTask -> sendTail(p, tail), null);
+            p.getScheduler().run(plugin, scheduledTask -> redraw(p, snapshot), null);
         }
     }
 
     // ========================================================== //
-    //           ТОЧЕЧНОЕ ОБНОВЛЕНИЕ ХВОСТА ИСТОРИИ                //
+    //                 ЗАМЕНА СТРОКИ И ПЕРЕРИСОВКА                 //
     // ========================================================== //
 
-    /** Заменяет строку {@code messageId} на {@code replacement} и возвращает копию хвоста (с неё и до конца). */
-    private @Nullable List<ChatLine> replaceAndCopyTail(@NotNull List<ChatLine> history, int messageId, @NotNull Component replacement) {
+    /** Заменяет строку {@code messageId} на {@code replacement} и возвращает снимок всей истории; {@code null}, если строки нет. */
+    private @Nullable List<ChatLine> replaceLine(@NotNull List<ChatLine> history, int messageId, @NotNull Component replacement) {
         synchronized (history) {
             for (int i = 0; i < history.size(); i++) {
                 ChatLine cl = history.get(i);
                 if (cl.messageId() == messageId && !cl.isPluginMessage()) {
                     history.set(i, new ChatLine(messageId, replacement, false));
-                    return new ArrayList<>(history.subList(i, history.size()));
+                    return new ArrayList<>(history);
                 }
             }
         }
         return null;
     }
 
-    /** Полностью убирает строку {@code messageId} из истории и возвращает копию хвоста, начиная с её позиции. */
-    private @Nullable List<ChatLine> removeAndCopyTail(@NotNull List<ChatLine> history, int messageId) {
+    /** Полностью убирает строку {@code messageId} из истории и возвращает снимок всей истории; {@code null}, если строки нет. */
+    private @Nullable List<ChatLine> removeLine(@NotNull List<ChatLine> history, int messageId) {
         synchronized (history) {
             for (int i = 0; i < history.size(); i++) {
                 if (history.get(i).messageId() == messageId && !history.get(i).isPluginMessage()) {
                     history.remove(i);
-                    int from = Math.min(i, history.size());
-                    return new ArrayList<>(history.subList(from, history.size()));
+                    return new ArrayList<>(history);
                 }
             }
         }
@@ -400,17 +393,26 @@ public class ChatHistoryManager {
     }
 
     /**
-     * Пересылает хвост истории игроку БЕЗ предварительной полной очистки чата — в отличие от
-     * старого поведения (100 пустых строк + вся история заново). Ограничение: клиентский чат
-     * Minecraft не поддерживает удаление/замену конкретной уже показанной строки, поэтому старая
-     * версия хвоста ненадолго остаётся видна выше новой — это компромисс, а не баг: полная
-     * альтернатива (очистка всего буфера) достаточно дорого стоила описанными в код-ревью
-     * проблемами (моргание, сброс прокрутки, потеря чужих системных сообщений).
+     * Собирает одно сообщение: {@link #CLEAR_LINES} пустых строк (вытесняют старый буфер клиента),
+     * затем все строки истории. Вынесено отдельно ради тестов — это чистая функция.
      */
-    private void sendTail(@NotNull Player p, @NotNull List<ChatLine> tail) {
-        for (ChatLine line : tail) {
-            markResendIgnored(p.getUniqueId(), line.component());
-            p.sendMessage(line.component());
+    static @NotNull Component buildRedraw(@NotNull List<ChatLine> lines) {
+        net.kyori.adventure.text.TextComponent.Builder builder = Component.text();
+        builder.append(Component.text("\n".repeat(CLEAR_LINES)));
+        for (int i = 0; i < lines.size(); i++) {
+            if (i > 0) builder.append(Component.newline());
+            builder.append(lines.get(i).component());
         }
+        return builder.build();
+    }
+
+    /**
+     * Перерисовывает игроку чат одним пакетом. Старая версия изменённой/удалённой строки
+     * исчезает, остальное (включая системные сообщения других плагинов) остаётся на местах;
+     * клиент применяет сообщение целиком за один кадр, поэтому чат не моргает.
+     */
+    private void redraw(@NotNull Player p, @NotNull List<ChatLine> lines) {
+        if (!p.isOnline()) return;
+        sendTracked(p, buildRedraw(lines));
     }
 }

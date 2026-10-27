@@ -393,9 +393,6 @@ integrations:
     enabled: true
     # false - то же для скинов (CMI в LoveChat нужен только для них), оставлено отдельным ключом ради совместимости
     use-skins: true
-  # ProtocolLib
-  protocollib:
-    enabled: true
 
 # ========================================== #
 #      КОМАНДЫ                               #

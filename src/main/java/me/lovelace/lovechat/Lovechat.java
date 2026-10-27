@@ -2,7 +2,7 @@ package me.lovelace.lovechat;
 
 import me.lovelace.lovechat.commands.LoveChatAdminCommand;
 import me.lovelace.lovechat.depends.CMISkinUtil;
-import me.lovelace.lovechat.depends.ProtocolLibHook;
+import me.lovelace.lovechat.depends.NettyChatHook;
 import me.lovelace.lovechat.expansion.ChatPlaceholderExpansion;
 import me.lovelace.lovechat.listeners.ChatListener;
 import me.lovelace.lovechat.managers.*;
@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * Основной класс плагина Lovechat.
  * Строго оптимизирован под Paper API 1.21.11 (совместим с Folia) и Java 21.
  * <p>
- * Это composition root: класс создаёт и связывает менеджеры ({@link EditSessionManager},
+ * Это composition root: класс создаёт и связывает менеджеры ({@link MessageActions},
  * {@link ChatHistoryManager}, {@link MessageRenderer}, {@link DatabaseManager},
  * {@link ChatBubbleManager}) и регистрирует команды/слушатели, но сам не содержит бизнес-логики
  * редактирования, истории чата или рендера сообщений — раньше это всё было здесь одним
@@ -42,7 +42,7 @@ public final class Lovechat extends JavaPlugin {
     private ChatBubbleManager chatBubbleManager;
     private ChatPlaceholderExpansion placeholderExpansion;
 
-    private EditSessionManager editSessionManager;
+    private NettyChatHook chatHook;
     private ChatHistoryManager chatHistoryManager;
     private MessageRenderer messageRenderer;
 
@@ -81,20 +81,19 @@ public final class Lovechat extends JavaPlugin {
 
         chatBubbleManager = new ChatBubbleManager(this);
         messageRenderer = new MessageRenderer(this);
-        editSessionManager = new EditSessionManager(this);
         chatHistoryManager = new ChatHistoryManager(this, messageRenderer);
         chatHistoryManager.seedMessageIdCounter(databaseManager.getMaxMessageIdAtStartup() + 1);
 
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
-        new ProtocolLibHook(this).register();
+        getServer().getPluginManager().registerEvents(new MessageActions(this), this);
+        chatHook = new NettyChatHook(this);
+        for (Player online : Bukkit.getOnlinePlayers()) chatHook.inject(online);
         registerPlaceholderExpansion();
 
         CommandManager cmdManager = new CommandManager(this);
         registerSafeCommand("lovechat", cmdManager);
         registerSafeCommand("channel", cmdManager);
         registerSafeCommand("ignorechat", cmdManager);
-        registerSafeCommand("messagedelete", cmdManager);
-        registerSafeCommand("messageedit", cmdManager);
         registerSafeCommand("silent", cmdManager);
         registerSafeCommand("tagtoggle", cmdManager);
         registerSafeCommand("spy", cmdManager);
@@ -121,6 +120,7 @@ public final class Lovechat extends JavaPlugin {
     @Override
     public void onDisable() {
         if (chatBubbleManager != null) chatBubbleManager.clearAll();
+        if (chatHook != null) chatHook.uninjectAll();
 
         HandlerList.unregisterAll(this);
 
@@ -145,9 +145,10 @@ public final class Lovechat extends JavaPlugin {
         return msg == null ? "<red>Message not found: " + key + "</red>" : msg;
     }
 
-    public void sendMessage(@NotNull org.bukkit.command.CommandSender sender, @NotNull String key, @NotNull String... placeholders) {
+    /** Резолвит ключ из messages.yml в компонент; {@code {key}}-плейсхолдеры подставляются как простой текст. */
+    private @NotNull Component buildMessage(@NotNull String key, boolean withPrefix, @NotNull String... placeholders) {
         if (messagesConfig == null) loadMessages();
-        String prefix = messagesConfig.getString("prefix", "");
+        String prefix = withPrefix ? messagesConfig.getString("prefix", "") : "";
         Component component = MiniMessage.miniMessage().deserialize(prefix + getRawMsg(key));
 
         for (int i = 0; i < placeholders.length; i += 2) {
@@ -157,7 +158,31 @@ public final class Lovechat extends JavaPlugin {
                 component = component.replaceText(builder -> builder.matchLiteral(target).replacement(replacement));
             }
         }
-        sender.sendMessage(component);
+        return component;
+    }
+
+    public void sendMessage(@NotNull org.bukkit.command.CommandSender sender, @NotNull String key, @NotNull String... placeholders) {
+        sender.sendMessage(buildMessage(key, true, placeholders));
+    }
+
+    /**
+     * Короткое уведомление об отказе («нет прав», «сообщение устарело»). Игроку оно показывается в
+     * action bar и не попадает в чат, а значит не засоряет историю и не вызывает перерисовку;
+     * консоли и прочим отправителям — обычной строкой.
+     */
+    public void notice(@NotNull org.bukkit.command.CommandSender sender, @NotNull String key, @NotNull String... placeholders) {
+        if (sender instanceof Player player) {
+            player.sendActionBar(buildMessage(key, false, placeholders));
+        } else {
+            sendMessage(sender, key, placeholders);
+        }
+    }
+
+    /** Like {@link #getRawMsg(String)}, but a missing key yields {@code fallback}: messages.yml of an existing server is never overwritten. */
+    public @NotNull String getRawMsg(@NotNull String key, @NotNull String fallback) {
+        if (messagesConfig == null) loadMessages();
+        String msg = messagesConfig.getString(key);
+        return msg == null ? fallback : msg;
     }
 
     private void registerSafeCommand(@NotNull String name, @NotNull CommandExecutor executor) {
@@ -191,7 +216,7 @@ public final class Lovechat extends JavaPlugin {
 
     public @NotNull DatabaseManager getDatabaseManager() { return databaseManager; }
     public @NotNull ChatBubbleManager getChatBubbleManager() { return chatBubbleManager; }
-    public @NotNull EditSessionManager getEditSessionManager() { return editSessionManager; }
+    public @Nullable NettyChatHook getChatHook() { return chatHook; }
     public @NotNull ChatHistoryManager getChatHistoryManager() { return chatHistoryManager; }
     public @NotNull MessageRenderer getMessageRenderer() { return messageRenderer; }
 
@@ -212,8 +237,8 @@ public final class Lovechat extends JavaPlugin {
     public @NotNull Component getClearChatComponent() { return chatHistoryManager.getClearChatComponent(); }
     public void clearChatForPlayer(@NotNull Player player, boolean keepStaff) { chatHistoryManager.clearChatForPlayer(player, keepStaff); }
 
-    public boolean shouldIgnorePacket(UUID uuid, String plainText) { return chatHistoryManager.shouldIgnorePacket(uuid, plainText); }
-    public void recordSystemMessageFromPacket(Player player, Component component) { chatHistoryManager.recordSystemMessageFromPacket(player, component); }
+    public boolean consumeOwnEcho(UUID uuid, String plainText) { return chatHistoryManager.consumeOwnEcho(uuid, plainText); }
+    public void recordSystemMessageFromPacket(UUID uuid, Component component) { chatHistoryManager.recordSystemMessageFromPacket(uuid, component); }
 
     public void deleteMessageVisual(int messageId, @NotNull org.bukkit.command.CommandSender sender) {
         chatHistoryManager.deleteMessageVisual(messageId, sender);
@@ -226,15 +251,6 @@ public final class Lovechat extends JavaPlugin {
     public void editMessageVisual(int messageId, String newText, Component newTextComponent, Player editor) {
         chatHistoryManager.editMessageVisual(messageId, newText, newTextComponent, editor);
     }
-
-    // ---- Тонкие делегаты к EditSessionManager ----
-
-    public void startEditSession(Player player, int messageId, String oldText) {
-        editSessionManager.startEditSession(player, messageId, oldText);
-    }
-
-    public @Nullable EditSessionManager.EditSession getEditSession(UUID uuid) { return editSessionManager.getSession(uuid); }
-    public void removeEditSession(UUID uuid) { editSessionManager.removeSession(uuid); }
 
     // ---- Состояние игрока (каналы/silent/ignore/tags/spy) — лёгкие переключатели без бизнес-логики,
     //      не выделялись в отдельный менеджер, т.к. явно не входили в список god-object проблем ревью ----
@@ -316,6 +332,10 @@ public final class Lovechat extends JavaPlugin {
             if (w != null) lowered.add(w.toLowerCase(Locale.ROOT));
         }
         disabledWorlds = lowered;
+        // The packet hook keeps a per-player copy of "my world is disabled" (it must not call Bukkit on Netty threads).
+        if (chatHook != null) {
+            for (Player online : Bukkit.getOnlinePlayers()) chatHook.refreshWorld(online);
+        }
     }
 
     public boolean isWorldDisabled(@NotNull String worldName) {
