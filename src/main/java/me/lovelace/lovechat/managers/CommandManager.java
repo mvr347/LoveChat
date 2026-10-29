@@ -88,12 +88,10 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             }
 
             if (!mode.equals("personal") && !sender.hasPermission("lovechat.clear.global")) {
-                plugin.sendMessage(sender, "no-permission");
                 return;
             }
 
             if (clearConsole && !sender.hasPermission("lovechat.clear.console")) {
-                plugin.sendMessage(sender, "no-permission");
                 return;
             }
 
@@ -122,37 +120,38 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         // --- SPY MODE ---
         if (isSpyCmd) {
             if (!sender.hasPermission("lovechat.spy")) {
-                plugin.sendMessage(sender, "no-permission");
                 return;
             }
-            if (sender instanceof Player p) {
-                if (isOnCooldown(p, "spy")) return;
-                plugin.toggleSpy(p.getUniqueId());
-                if (plugin.isSpy(p.getUniqueId())) plugin.sendMessage(p, "spy-enabled");
-                else plugin.sendMessage(p, "spy-disabled");
+            if (!(sender instanceof Player p)) {
+                plugin.sendMessage(sender, "player-only");
+                return;
             }
+            if (isOnCooldown(p, "spy")) return;
+            plugin.toggleSpy(p.getUniqueId());
+            if (plugin.isSpy(p.getUniqueId())) plugin.sendMessage(p, "spy-enabled");
+            else plugin.sendMessage(p, "spy-disabled");
             return;
         }
 
         // --- SILENT MODE ---
         if (isSilentCmd) {
             if (!sender.hasPermission("lovechat.silent")) {
-                plugin.sendMessage(sender, "no-permission");
                 return;
             }
-            if (sender instanceof Player p) {
-                if (isOnCooldown(p, "silent")) return;
-                plugin.toggleSilent(p.getUniqueId());
-                if (plugin.isSilent(p.getUniqueId())) plugin.sendMessage(p, "silent-enabled");
-                else plugin.sendMessage(p, "silent-disabled");
+            if (!(sender instanceof Player p)) {
+                plugin.sendMessage(sender, "player-only");
+                return;
             }
+            if (isOnCooldown(p, "silent")) return;
+            plugin.toggleSilent(p.getUniqueId());
+            if (plugin.isSilent(p.getUniqueId())) plugin.sendMessage(p, "silent-enabled");
+            else plugin.sendMessage(p, "silent-disabled");
             return;
         }
 
         // --- TAG TOGGLE ---
         if (isTagToggleCmd) {
             if (!sender.hasPermission("lovechat.tagtoggle")) {
-                plugin.sendMessage(sender, "no-permission");
                 return;
             }
 
@@ -166,7 +165,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             }
 
             if (target == null) {
-                plugin.sendMessage(sender, "player-not-found");
+                // Console without a nickname has no "self" to toggle.
+                plugin.sendMessage(sender, sender instanceof Player ? "player-not-found" : "player-only");
                 return;
             }
 
@@ -184,7 +184,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         }
 
         // --- CHANNEL SWITCHER ---
-        if (command.getName().equalsIgnoreCase("channel") && sender instanceof Player p) {
+        if (command.getName().equalsIgnoreCase("channel")) {
+            if (!(sender instanceof Player p)) {
+                plugin.sendMessage(sender, "player-only");
+                return;
+            }
             ConfigurationSection channels = plugin.getConfig().getConfigurationSection("colors.channels");
             if (channels == null) return;
 
@@ -227,7 +231,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         }
 
         // --- IGNORE CHAT ---
-        if (isIgnoreCmd && sender instanceof Player p) {
+        if (isIgnoreCmd) {
+            if (!(sender instanceof Player p)) {
+                plugin.sendMessage(sender, "player-only");
+                return;
+            }
             String targetName = null;
             if (command.getName().equalsIgnoreCase("ignorechat") && args.length >= 1) {
                 targetName = args[0];
@@ -288,8 +296,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
                 if (sender.hasPermission("lovechat.admin")) {
                     plugin.sendMessage(sender, "reload-moved");
-                } else {
-                    plugin.sendMessage(sender, "no-permission");
                 }
                 return;
             }
