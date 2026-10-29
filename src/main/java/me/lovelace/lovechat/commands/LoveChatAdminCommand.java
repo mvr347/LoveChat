@@ -40,8 +40,8 @@ public class LoveChatAdminCommand implements CommandExecutor, TabCompleter {
     @Override
     @SuppressWarnings("NullableProblems")
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // Silent on purpose: a command the sender cannot use is simply not theirs.
         if (!sender.hasPermission("lovechat.admin")) {
-            plugin.sendMessage(sender, "no-permission");
             return true;
         }
 

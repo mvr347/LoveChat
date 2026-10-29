@@ -11,9 +11,11 @@ commands:
     description: Основная команда плагина
     aliases: [chat, lc, чат]
     permission: lovechat.use
+    permission-message: ""
   lovechatadmin:
     description: Административные команды Lovechat (reload и т.д.)
     permission: lovechat.admin
+    permission-message: ""
   channel:
     description: Переключить канал чата
     aliases: [ch, c]
@@ -22,13 +24,19 @@ commands:
     aliases: [chatignore]
   silent:
     description: Включить/выключить тихий режим
+    permission: lovechat.silent
+    permission-message: ""
   chatclear:
     description: Очистка чата
     aliases: [cc]
   tagtoggle:
     description: Включить/выключить упоминания себя
+    permission: lovechat.tagtoggle
+    permission-message: ""
   spy:
     description: Режим шпиона
+    permission: lovechat.spy
+    permission-message: ""
 permissions:
   lovechat.admin:
     default: op
