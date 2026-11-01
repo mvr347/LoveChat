@@ -1,0 +1,7 @@
+# Однократное обновление оформления; исходные файлы сохраняются рядом как .pre-style-20261101.bak.
+version: 20261101
+updates:
+- file: messages.yml
+  path: prefix
+  before: "<dark_gray>[<aqua>Lovechat</aqua>]</dark_gray> "
+  value: '<gradient:#55FFFF:#5599FF>Чат</gradient> <white>»</white> '

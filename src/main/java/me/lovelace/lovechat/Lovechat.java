@@ -69,6 +69,16 @@ public final class Lovechat extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Apply the bundled style update before any module reads its documents.
+        try {
+            Class.forName("dev.lovelace.lovecore.gui.GuiStyles")
+                    .getMethod("migrate", org.bukkit.plugin.java.JavaPlugin.class).invoke(null, this);
+        } catch (java.lang.reflect.InvocationTargetException error) {
+            throw new IllegalStateException("Обновление оформления остановлено; проверьте конфиги и резервные копии", error.getCause());
+        } catch (ReflectiveOperationException error) {
+            getLogger().warning("Оформление не обновлено: обновите LoveCore. Причина: " + error);
+        }
+
         instance = this;
         saveDefaultConfig();
         loadMessages();
