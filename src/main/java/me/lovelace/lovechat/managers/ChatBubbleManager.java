@@ -74,6 +74,10 @@ public class ChatBubbleManager {
     }
 
     public void showBubble(@NotNull Player player, @NotNull String rawMessage, @NotNull String channel) {
+        if (me.lovelace.lovechat.integration.ModerationBridge.muted(player.getUniqueId())) {
+            removeBubble(player.getUniqueId());
+            return;
+        }
         if (!enabled) return;
         if (plugin.isWorldDisabled(player.getWorld().getName())) return;
 

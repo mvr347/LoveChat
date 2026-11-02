@@ -147,6 +147,11 @@ public class ChatListener implements Listener {
     }
 
     private void processChatMessage(@NotNull Player player, String rawMessage, Component incomingMessageComponent, boolean useIncomingComponent) {
+        if (me.lovelace.lovechat.integration.ModerationBridge.muted(player.getUniqueId())) {
+            player.sendMessage(player.displayName().append(Component.text(" » " + rawMessage)));
+            player.sendActionBar(Component.text("Вас никто не слышит"));
+            return;
+        }
         ConfigurationSection channels = plugin.getConfig().getConfigurationSection("colors.channels");
         String activeChannel = plugin.getDefaultChannel(player.getUniqueId());
 
