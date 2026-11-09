@@ -145,6 +145,14 @@ public class CMISkinUtil {
                 && config.getBoolean("integrations.cmi.use-skins", true);
     }
 
+    /**
+     * The player's styled nickname from the configured presence provider (LoveEssential's /nick), or null when the
+     * player has none. Chat shows it instead of the account name; the real name stays in hover and click.
+     */
+    public static @org.jetbrains.annotations.Nullable net.kyori.adventure.text.Component displayName(UUID uuid) {
+        return PresenceSkinBridge.displayName(mode.configId(), uuid);
+    }
+
     public static SkinProviderMode getMode() {
         return mode;
     }

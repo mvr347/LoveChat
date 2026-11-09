@@ -53,4 +53,15 @@ final class PresenceSkinBridge {
             return Lookup.MISSING;
         }
     }
+
+    /** Styled nickname (colour, gradient) from the provider, or null when there is none or the provider is missing. */
+    static @Nullable net.kyori.adventure.text.Component displayName(@NotNull String providerId, @NotNull UUID playerId) {
+        try {
+            return LoveCore.provider(PresenceOracle.class, providerId)
+                    .flatMap(oracle -> oracle.displayName(playerId))
+                    .orElse(null);
+        } catch (LinkageError loveCoreAbsent) {
+            return null;
+        }
+    }
 }

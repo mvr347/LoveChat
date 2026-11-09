@@ -549,7 +549,10 @@ public class MessageRenderer {
     }
 
     private Component buildPlayerComponent(RenderAuthor author, Component headComponent, String hoverText, String clickCmd) {
-        Component playerNameDisplay = Component.text(author.name()).font(Key.key("minecraft:default"));
+        Component nickname = plugin.getConfig().getBoolean("chat.use-nickname", true)
+                ? CMISkinUtil.displayName(author.uuid()) : null;
+        Component playerNameDisplay = (nickname != null ? nickname : Component.text(author.name()))
+                .font(Key.key("minecraft:default"));
 
         return Component.empty()
                 .append(headComponent)
