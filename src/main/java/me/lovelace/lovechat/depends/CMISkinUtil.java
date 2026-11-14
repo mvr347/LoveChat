@@ -197,7 +197,9 @@ public class CMISkinUtil {
         try {
             SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
             if (skullMeta != null) {
-                skullMeta.setOwningPlayer(player);
+                // A blank head is preferable to a Mojang lookup of the offline-mode UUID.
+                if (player.getPlayerProfile().getTextures().getSkin() != null)
+                    skullMeta.setPlayerProfile(player.getPlayerProfile());
                 head.setItemMeta(skullMeta);
             }
         } catch (Exception ignored) {}
@@ -211,11 +213,11 @@ public class CMISkinUtil {
      * SkinProperty-based). Профиль игрока проверяется раньше CMI (см. getSkinProperty).
      */
     public static String getSkinTexture(UUID uuid) {
-        String cached = skinCache.getIfPresent(uuid);
+        Player player = Bukkit.getPlayer(uuid);
+        String cached = player == null ? skinCache.getIfPresent(uuid) : null;
         if (cached != null) {
             return cached;
         }
-        Player player = Bukkit.getPlayer(uuid);
         SkinProperty prop = getSkinProperty(uuid, player != null ? player.getName() : null);
         if (prop != null && prop.value() != null && !prop.value().isEmpty()) {
             skinCache.put(uuid, prop.value());
@@ -283,24 +285,9 @@ public class CMISkinUtil {
     }
 
     private static void setSkullTexture(SkullMeta skullMeta, String texture, UUID uuid) {
-        try {
-            Class<?> profileClass = Class.forName("com.mojang.authlib.GameProfile");
-            Object profile = profileClass.getConstructor(UUID.class, String.class)
-                    .newInstance(uuid, "ChatBubble_" + uuid.toString().substring(0, 8));
-            Class<?> propertyClass = Class.forName("com.mojang.authlib.properties.Property");
-            Object property = propertyClass.getConstructor(String.class, String.class)
-                    .newInstance("textures", texture);
-            Object propertyMap = profileClass.getMethod("getProperties").invoke(profile);
-            propertyMap.getClass().getMethod("put", Object.class, Object.class)
-                    .invoke(propertyMap, "textures", property);
-            Method setProfileMethod = skullMeta.getClass().getDeclaredMethod("setProfile", profileClass);
-            setProfileMethod.setAccessible(true);
-            setProfileMethod.invoke(skullMeta, profile);
-        } catch (Exception e) {
-            try {
-                skullMeta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
-            } catch (Exception ignored) {}
-        }
+        var profile = Bukkit.createProfile(SkinIdentity.id(uuid.toString(), texture), "LoveChatSkin");
+        profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", texture));
+        skullMeta.setPlayerProfile(profile);
     }
 
     public static void clearCache() {
