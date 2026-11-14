@@ -533,7 +533,7 @@ public class MessageRenderer {
             } else {
                 propertiesJson = "\"properties\":[{\"name\":\"textures\",\"value\":\"" + skinProp.value() + "\"}]";
             }
-            String fakeUuid = String.valueOf(HeadComponentUtil.makeSkinUuid(author.name()));
+            String fakeUuid = String.valueOf(HeadComponentUtil.makeSkinUuid(author.name(), skinProp.value()));
             String fakeName = HeadComponentUtil.makeSkinName(author.name());
             String headJson = "{\"text\":\"\",\"extra\":[{\"text\":\"\",\"type\":\"minecraft:player\",\"id\":\""
                     + fakeUuid

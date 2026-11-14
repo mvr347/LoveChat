@@ -88,7 +88,7 @@ public class HeadComponentUtil {
             if (resolvableProfileClass == null || gameProfileClass == null) return null;
 
             if (textureValue != null && !textureValue.isEmpty()) {
-                UUID id = makeSkinUuid(name);
+                UUID id = makeSkinUuid(name, textureValue);
                 String profileName = makeSkinName(name);
 
                 Class<?> propertyMapClass = ReflectionCache.findClass("com.mojang.authlib.properties.PropertyMap");
@@ -551,9 +551,13 @@ public class HeadComponentUtil {
         return UUID.nameUUIDFromBytes(("CustomSkin_" + safeName).getBytes(StandardCharsets.UTF_8));
     }
 
+    public static UUID makeSkinUuid(String name, String textureValue) {
+        return SkinIdentity.id(name, textureValue);
+    }
+
     public static String makeSkinName(String name) {
         String safeName = (name != null && !name.isEmpty()) ? name : "Unknown";
-        return "Skin_" + safeName;
+        return "Skin_" + safeName.substring(0, Math.min(11, safeName.length()));
     }
 
     private static void debugMethods(String label, Class<?> type) {
