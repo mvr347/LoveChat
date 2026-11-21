@@ -6,6 +6,10 @@ import java.io.File;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +20,15 @@ public class DatabaseManager {
     private Connection connection;
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private volatile boolean isShuttingDown = false;
+
+    // dbExecutor has an unbounded queue and every chat message used to add two tasks that each hold the text.
+    // Message counts are therefore coalesced per player into one flush task, and message-log inserts are capped:
+    // when SQLite stalls, losing a log row is better than the queue (and the heap) growing without limit.
+    private static final int MAX_PENDING_LOG_WRITES = 5000;
+    private final ConcurrentHashMap<UUID, Integer> pendingCounts = new ConcurrentHashMap<>();
+    private final AtomicBoolean countFlushScheduled = new AtomicBoolean();
+    private final AtomicInteger pendingLogWrites = new AtomicInteger();
+    private final AtomicInteger droppedLogWrites = new AtomicInteger();
     private volatile int maxMessageIdAtStartup = 0;
 
     public DatabaseManager(Lovechat plugin) { this.plugin = plugin; }
@@ -67,7 +80,66 @@ public class DatabaseManager {
     }
 
     public CompletableFuture<Integer> getMessageCount(UUID uuid) { return CompletableFuture.supplyAsync(() -> { if (notReady()) return 0; try (PreparedStatement pstmt = connection.prepareStatement("SELECT message_count FROM player_stats WHERE uuid = ?")) { pstmt.setString(1, uuid.toString()); try (ResultSet rs = pstmt.executeQuery()) { if (rs.next()) return rs.getInt("message_count"); } } catch (SQLException e) { logSqlWarning("reading message count", e); } return 0; }, dbExecutor); }
-    public void incrementMessageCount(UUID uuid) { CompletableFuture.runAsync(() -> { if (notReady()) return; try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO player_stats (uuid, message_count) VALUES (?, 1) ON CONFLICT(uuid) DO UPDATE SET message_count = message_count + 1")) { pstmt.setString(1, uuid.toString()); pstmt.executeUpdate(); } catch (SQLException e) { logSqlWarning("incrementing message count", e); } }, dbExecutor); }
+    public void incrementMessageCount(UUID uuid) {
+        pendingCounts.merge(uuid, 1, Integer::sum);
+        if (!countFlushScheduled.compareAndSet(false, true)) return;
+        try {
+            dbExecutor.execute(this::flushMessageCounts);
+        } catch (RejectedExecutionException e) {
+            countFlushScheduled.set(false); // executor already shut down: nothing can be written any more
+            pendingCounts.clear();
+        }
+    }
+
+    private void flushMessageCounts() {
+        // Reset before draining: an increment that arrives meanwhile schedules a fresh flush instead of being lost.
+        countFlushScheduled.set(false);
+        List<UUID> players = new ArrayList<>(pendingCounts.keySet());
+        for (UUID uuid : players) {
+            Integer amount = pendingCounts.remove(uuid);
+            if (amount == null || notReady()) continue;
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO player_stats (uuid, message_count) VALUES (?, ?) ON CONFLICT(uuid) DO UPDATE SET message_count = message_count + ?")) {
+                pstmt.setString(1, uuid.toString());
+                pstmt.setInt(2, amount);
+                pstmt.setInt(3, amount);
+                pstmt.executeUpdate();
+            } catch (SQLException e) {
+                logSqlWarning("incrementing message count", e);
+            }
+        }
+    }
+
+    /** Queues one message-log insert unless the backlog is already at the cap (then the row is dropped and counted). */
+    private void queueLogWrite(int id, String playerUuid, String content, String action) {
+        if (pendingLogWrites.incrementAndGet() > MAX_PENDING_LOG_WRITES) {
+            pendingLogWrites.decrementAndGet();
+            int dropped = droppedLogWrites.incrementAndGet();
+            if (dropped == 1 || dropped % 1000 == 0) {
+                plugin.getLogger().warning("Chat log write backlog is full (SQLite too slow); dropped " + dropped + " message log rows so far");
+            }
+            return;
+        }
+        try {
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (notReady()) return;
+                try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO messages (id, player_uuid, content, timestamp) VALUES (?, ?, ?, ?)")) {
+                    pstmt.setInt(1, id);
+                    pstmt.setString(2, playerUuid);
+                    pstmt.setString(3, content);
+                    pstmt.setLong(4, System.currentTimeMillis());
+                    pstmt.executeUpdate();
+                } catch (SQLException e) {
+                    logSqlWarning(action + " " + id, e);
+                }
+            } finally {
+                pendingLogWrites.decrementAndGet();
+            }
+        }, dbExecutor);
+        } catch (RejectedExecutionException e) {
+            pendingLogWrites.decrementAndGet(); // executor already shut down: the task never ran
+        }
+    }
     /** Named "Sync" for its external API contract (caller expects the delete to be done when
      *  this returns), but actually routed through dbExecutor and blocked on — running it
      *  directly on the caller's thread would race the same Connection against dbExecutor's
@@ -130,6 +202,6 @@ public class DatabaseManager {
             logSqlWarning("closing database connection", e);
         }
     }
-    public void logMessage(int id, UUID uuid, String c) { CompletableFuture.runAsync(() -> { if (notReady()) return; try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO messages (id, player_uuid, content, timestamp) VALUES (?, ?, ?, ?)")) { pstmt.setInt(1, id); pstmt.setString(2, uuid.toString()); pstmt.setString(3, c); pstmt.setLong(4, System.currentTimeMillis()); pstmt.executeUpdate(); } catch (SQLException e) { logSqlWarning("logging message " + id, e); } }, dbExecutor); }
-    public void logSystemMessage(int id, String c) { CompletableFuture.runAsync(() -> { if (notReady()) return; try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO messages (id, player_uuid, content, timestamp) VALUES (?, ?, ?, ?)")) { pstmt.setInt(1, id); pstmt.setString(2, "SYSTEM"); pstmt.setString(3, c); pstmt.setLong(4, System.currentTimeMillis()); pstmt.executeUpdate(); } catch (SQLException e) { logSqlWarning("logging system message " + id, e); } }, dbExecutor); }
+    public void logMessage(int id, UUID uuid, String c) { queueLogWrite(id, uuid.toString(), c, "logging message"); }
+    public void logSystemMessage(int id, String c) { queueLogWrite(id, "SYSTEM", c, "logging system message"); }
 }
