@@ -30,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
  *     <li><a href="#chat-api">Chat API</a></li>
  *     <li><a href="#chat-bubbles">ChatBubbles API</a></li>
  *     <li><a href="#database">Database API</a></li>
- *     <li><a href="#cmi-skins">CMI Skin Support</a></li>
+ *     <li><a href="#cmi-skins">Skin Support</a></li>
  *     <li><a href="#events">События (Events)</a></li>
  *     <li><a href="#examples">Примеры использования</a></li>
  * </ul>
@@ -101,7 +101,7 @@ public class LovechatAPI {
     }
 
     /**
-     * Получить утилиту CMI скинов
+     * Получить утилиту скинов (имя осталось от поддержки CMI)
      * @return CMISkinUtil class
      */
     @NotNull
@@ -209,21 +209,18 @@ public class LovechatAPI {
     // ========================================== //
 
     /**
-     * Проверка доступности настроенного источника скинов ({@code integrations.skins}).
-     * @return true, если выбранный источник сейчас может отдавать скины сверх собственного профиля игрока:
-     *         мост CMI в режиме {@code cmi} либо зарегистрированный PresenceOracle {@code loveessential}
-     *         в режиме {@code loveessential}
+     * Проверка доступности источника скинов.
+     * @return true, если зарегистрирован PresenceOracle {@code loveessential}, который может отдавать скины
+     *         сверх собственного профиля игрока
      */
     public static boolean isSkinProviderAvailable() {
         return CMISkinUtil.isSkinProviderAvailable();
     }
 
     /**
-     * Проверка доступности CMI.
-     * @return то же, что {@link #isSkinProviderAvailable()}. В режиме {@code cmi} (по умолчанию) это ровно
-     *         "CMI доступен"; в режиме {@code loveessential} метод отвечает про LoveEssential, а не про CMI.
-     * @deprecated имя вводит в заблуждение при {@code integrations.skins: loveessential};
-     *             используйте {@link #isSkinProviderAvailable()}
+     * Проверка доступности источника скинов (старое имя метода).
+     * @return то же, что {@link #isSkinProviderAvailable()}; CMI больше не используется
+     * @deprecated имя осталось от поддержки CMI; используйте {@link #isSkinProviderAvailable()}
      */
     @Deprecated
     public static boolean isCMIAvailable() {
@@ -287,7 +284,7 @@ public class LovechatAPI {
     }
 
     /**
-     * Инициализация CMI
+     * Инициализация источника скинов
      */
     public static void initCMI() {
         CMISkinUtil.init();

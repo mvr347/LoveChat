@@ -10,31 +10,24 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Skin resolution for chat heads. Despite the historical name it serves two sources, chosen by
- * {@code integrations.skins}: {@code cmi} (reflection bridge to CMI, skins set via /skin) and
- * {@code loveessential} (LoveCore {@code PresenceOracle} provider). In both modes the player's own
- * profile textures are checked first.
+ * Skin resolution for chat heads. Despite the historical name (the class used to bridge CMI) it has one source
+ * since 2026-11-21: LoveCore's {@code PresenceOracle} provided by LoveEssential. The player's own profile
+ * textures are always checked first. The class name stays because {@code LovechatAPI#getCMISkinUtil} exposes it.
  */
 @SuppressWarnings({"HttpUrlsUsage", "DuplicatedCode", "unused"})
 public class CMISkinUtil {
 
-    private static boolean cmiEnabled = false;
-    /** Active skin source, re-read from config on every {@link #init()} (also on /lovechatadmin reload). */
-    private static volatile SkinProviderMode mode = SkinProviderMode.DEFAULT;
-    /** {@code integrations.cmi.enabled && integrations.cmi.use-skins}; only meaningful in {@code cmi} mode. */
-    private static volatile boolean cmiSkinsWanted = true;
     private static volatile boolean warnedProviderMissing = false;
     private static volatile boolean warnedProviderFailure = false;
     /**
-     * Last skin seen per player in {@code loveessential} mode. The PresenceOracle has no data for
-     * offline authors (history re-render, offline-author path), so this is the fallback there.
+     * Last skin seen per player. The PresenceOracle has no data for offline authors (history re-render,
+     * offline-author path), so this is the fallback there.
      */
     private static final Cache<UUID, SkinProperty> lastKnownSkin = CacheBuilder.newBuilder()
             .maximumSize(2000)
@@ -44,141 +37,42 @@ public class CMISkinUtil {
             .maximumSize(2000)
             .expireAfterAccess(2, TimeUnit.HOURS)
             .build();
-    private static Object skinManagerInstance = null;
-    private static Method getSkinByUuidMethod = null;
-    private static Method getSkinByNameMethod = null;
-    private static Class<?> skinManagerClass = null;
-    /** Code-review fix: these two lookups used to fail with a bare {@code catch (Throwable ignored) {}}
-     *  and zero logging, even under debug mode — the actual mechanism behind the reported "CMI
-     *  integration stopped working, no errors from either plugin" bug. Logged once per failure site
-     *  (not per lookup call) so a broken hook is visible without spamming the console on every message. */
-    private static boolean loggedCmiLookupFailure = false;
-    private static boolean loggedCmiCacheLookupFailure = false;
 
     public record SkinProperty(String value, String signature) {}
 
     public static void init() {
-        SkinProviderMode previous = mode;
-        loadConfig();
-        // Reflection state belongs to the CMI source only; drop it so a reload that switches
-        // mode (or disables CMI skins) does not keep using a stale SkinManager.
-        cmiEnabled = false;
-        skinManagerInstance = null;
-        skinManagerClass = null;
-        getSkinByUuidMethod = null;
-        getSkinByNameMethod = null;
         warnedProviderMissing = false;
         warnedProviderFailure = false;
-        if (previous != mode) {
-            clearCache();
+        clearCache();
+        Lovechat.getInstance().getLogger().info("Источник скинов: loveessential (LoveCore PresenceOracle) и профиль игрока.");
+        String leftover = Lovechat.getInstance().getConfig().getString("integrations.skins", null);
+        if (leftover != null && !leftover.isBlank() && !leftover.trim().equalsIgnoreCase("global")
+                && !leftover.trim().equalsIgnoreCase("loveessential")) {
+            Lovechat.getInstance().getLogger().warning("integrations.skins: значение '" + leftover.trim()
+                    + "' игнорируется, скины берутся только из LoveEssential; удалите ключ из config.yml.");
         }
-
-        if (mode == SkinProviderMode.LOVEESSENTIAL) {
-            Lovechat.getInstance().getLogger().info("Источник скинов: loveessential (LoveCore PresenceOracle). CMI не используется.");
-            return;
-        }
-        if (!cmiSkinsWanted) {
-            Lovechat.getInstance().getLogger().info("Скины CMI отключены в config.yml (integrations.cmi). Используются текстуры профиля игрока.");
-            return;
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("CMI")) {
-            cmiEnabled = true;
-            try {
-                // Инициализация CMI SkinManager
-                Class<?> cmiClass = Class.forName("com.Zrips.CMI.CMI");
-                Object cmiInstance = cmiClass.getMethod("getInstance").invoke(null);
-                skinManagerInstance = cmiClass.getMethod("getSkinManager").invoke(cmiInstance);
-                skinManagerClass = skinManagerInstance.getClass();
-                
-                // Пробуем найти метод getSkin(UUID)
-                try {
-                    getSkinByUuidMethod = skinManagerClass.getMethod("getSkin", UUID.class);
-                    Lovechat.getInstance().getLogger().info("CMI найден! Поддержка скинов включена (UUID метод).");
-                } catch (NoSuchMethodException e) {
-                    // Пробуем альтернативные методы
-                    try {
-                        getSkinByUuidMethod = skinManagerClass.getMethod("getSkin", String.class);
-                        Lovechat.getInstance().getLogger().info("CMI найден! Поддержка скинов включена (String метод).");
-                    } catch (NoSuchMethodException ex) {
-                        Lovechat.getInstance().getLogger().warning("CMI найден, но метод getSkin не доступен. Используем стандартные головы.");
-                    }
-                }
-                
-                try {
-                    getSkinByNameMethod = skinManagerClass.getMethod("getSkin", String.class);
-                } catch (NoSuchMethodException ignored) {}
-                
-            } catch (Throwable e) {
-                // CMI's classes can reference optional dependencies (e.g. Vault) in method
-                // signatures it doesn't itself have loaded; just calling getMethod() on such
-                // a class throws NoClassDefFoundError (an Error, not Exception) when that
-                // optional dependency isn't installed. Treat any failure here as "no CMI skins".
-                Lovechat.getInstance().getLogger().warning("Ошибка инициализации CMI SkinManager: " + e.getMessage());
-                cmiEnabled = false;
-            }
-        } else {
-            cmiEnabled = false;
-            Lovechat.getInstance().getLogger().info("CMI не найден. Будут использоваться стандартные головы.");
-        }
-    }
-
-    /** Reads {@code integrations.skins} and the CMI switches; unknown values fall back to {@code cmi} with one warning. */
-    private static void loadConfig() {
-        var config = Lovechat.getInstance().getConfig();
-        String configured = config.getString("integrations.skins", "global");
-        // "global" (the default) follows integrations.provider of LoveCore; an explicit cmi/loveessential wins.
-        String effective;
-        try {
-            effective = dev.lovelace.lovecore.api.LoveCore.providerId(
-                    dev.lovelace.lovecore.api.provider.ProviderKind.PRESENCE, configured);
-        } catch (LinkageError coreMissingOrOld) {
-            effective = SkinProviderMode.withoutCore(configured);
-        }
-        SkinProviderMode.Parsed parsed = SkinProviderMode.parse(effective);
-        if (!parsed.recognized()) {
-            Lovechat.getInstance().getLogger().warning("integrations.skins: неизвестное значение '"
-                    + configured + "' (допустимо: global, cmi, loveessential). Используется cmi.");
-        }
-        mode = parsed.mode();
-        cmiSkinsWanted = config.getBoolean("integrations.cmi.enabled", true)
-                && config.getBoolean("integrations.cmi.use-skins", true);
     }
 
     /**
-     * The player's styled nickname from the configured presence provider (LoveEssential's /nick), or null when the
+     * The player's styled nickname from LoveEssential's presence provider (/nick), or null when the
      * player has none. Chat shows it instead of the account name; the real name stays in hover and click.
      */
     public static @org.jetbrains.annotations.Nullable net.kyori.adventure.text.Component displayName(UUID uuid) {
-        return PresenceSkinBridge.displayName(mode.configId(), uuid);
-    }
-
-    public static SkinProviderMode getMode() {
-        return mode;
-    }
-
-    /** True when the CMI reflection bridge is hooked and usable (strictly CMI, regardless of mode). */
-    public static boolean isCMIAvailable() {
-        return cmiEnabled && skinManagerInstance != null;
+        return PresenceSkinBridge.displayName(uuid);
     }
 
     /**
-     * True when the CONFIGURED skin source can currently supply skins beyond the player's own
-     * profile: the CMI bridge in {@code cmi} mode, a registered {@code loveessential}
-     * PresenceOracle in {@code loveessential} mode.
+     * True when LoveEssential's presence provider is registered and can supply skins beyond the player's own
+     * profile.
      */
     public static boolean isSkinProviderAvailable() {
-        if (mode == SkinProviderMode.LOVEESSENTIAL) {
-            return PresenceSkinBridge.providerPresent(mode.configId());
-        }
-        return cmiSkinsWanted && isCMIAvailable();
+        return PresenceSkinBridge.providerPresent();
     }
 
     public static ItemStack getPlayerHead(Player player) {
         ItemStack head = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
 
-        // Профиль игрока (актуален всегда, включая скины CMI, если CMI меняет сам GameProfile)
-        // проверяется раньше CMI-рефлексии, а не только как её фолбэк.
+        // Профиль игрока (актуален всегда) проверяется раньше провайдера, а не только как его фолбэк.
         SkinProperty prop = getSkinProperty(player);
         if (prop != null && prop.value() != null && !prop.value().isEmpty()) {
             try {
@@ -210,7 +104,7 @@ public class CMISkinUtil {
     /**
      * Тонкая обёртка над {@link #getSkinProperty(UUID, String)}, чтобы не держать
      * два параллельных пути резолва скина (старый String-based и новый
-     * SkinProperty-based). Профиль игрока проверяется раньше CMI (см. getSkinProperty).
+     * SkinProperty-based). Профиль игрока проверяется раньше провайдера (см. getSkinProperty).
      */
     public static String getSkinTexture(UUID uuid) {
         Player player = Bukkit.getPlayer(uuid);
@@ -238,32 +132,27 @@ public class CMISkinUtil {
         return prop.value() != null && !prop.value().isEmpty();
     }
 
-    /** Player's own profile first (always current, includes skins applied by CMI itself), then the configured source. */
+    /** Player's own profile first (always current), then LoveEssential's presence provider, then the last seen skin. */
     private static SkinProperty resolve(Player player, UUID uuid, String playerName) {
-        if (mode == SkinProviderMode.LOVEESSENTIAL) {
-            SkinProperty found = SkinChain.firstUsable(CMISkinUtil::isUsable,
-                    () -> player != null ? getSkinPropertyFromProfile(player) : null,
-                    () -> getSkinPropertyFromProvider(uuid));
-            if (found != null) {
-                lastKnownSkin.put(uuid, found);
-                return found;
-            }
-            // Offline author or provider has nothing: last skin we saw for this player.
-            return lastKnownSkin.getIfPresent(uuid);
-        }
-        return SkinChain.firstUsable(CMISkinUtil::isUsable,
+        SkinProperty found = SkinChain.firstUsable(CMISkinUtil::isUsable,
                 () -> player != null ? getSkinPropertyFromProfile(player) : null,
-                () -> cmiSkinsWanted ? getSkinPropertyFromCmi(uuid, playerName) : null);
+                () -> getSkinPropertyFromProvider(uuid));
+        if (found != null) {
+            lastKnownSkin.put(uuid, found);
+            return found;
+        }
+        // Offline author or provider has nothing: last skin we saw for this player.
+        return lastKnownSkin.getIfPresent(uuid);
     }
 
     private static SkinProperty getSkinPropertyFromProvider(UUID uuid) {
         try {
-            PresenceSkinBridge.Lookup lookup = PresenceSkinBridge.skin(mode.configId(), uuid);
+            PresenceSkinBridge.Lookup lookup = PresenceSkinBridge.skin(uuid);
             if (!lookup.providerPresent()) {
                 if (!warnedProviderMissing) {
                     warnedProviderMissing = true;
-                    Lovechat.getInstance().getLogger().warning("integrations.skins: loveessential, но провайдер PresenceOracle "
-                            + "'loveessential' не зарегистрирован в LoveCore (LoveCore/LoveEssential не установлен или ещё не включился). "
+                    Lovechat.getInstance().getLogger().warning("Провайдер PresenceOracle 'loveessential' не зарегистрирован "
+                            + "в LoveCore (LoveCore/LoveEssential не установлен или ещё не включился). "
                             + "Скины берутся только из профиля игрока и кэша.");
                 }
                 return null;
@@ -310,98 +199,7 @@ public class CMISkinUtil {
         if (texture == null || texture.isEmpty()) {
             return null;
         }
-        // CMI уже возвращает текстуру в Base64 формате
         return texture;
-    }
-
-    private static SkinProperty getSkinPropertyFromCmi(UUID uuid, String playerName) {
-        if (!isCMIAvailable() || getSkinByUuidMethod == null) {
-            return getSkinPropertyFromCmiCache(uuid, playerName);
-        }
-
-        try {
-            SkinProperty cached = getSkinPropertyFromCmiCache(uuid, playerName);
-            if (cached != null && cached.value() != null && !cached.value().isEmpty()) {
-                skinCache.put(uuid, cached.value());
-                logSkinDebug("CMI_CACHE", uuid, playerName, cached);
-                return cached;
-            }
-
-            Object skin = null;
-
-            if (getSkinByUuidMethod.getParameterCount() == 1 &&
-                    getSkinByUuidMethod.getParameterTypes()[0] == UUID.class) {
-                skin = getSkinByUuidMethod.invoke(skinManagerInstance, uuid);
-            } else if (getSkinByUuidMethod.getParameterCount() == 1 &&
-                    getSkinByUuidMethod.getParameterTypes()[0] == String.class) {
-                skin = getSkinByUuidMethod.invoke(skinManagerInstance, uuid.toString());
-            }
-
-            if (skin == null && getSkinByNameMethod != null && playerName != null) {
-                skin = getSkinByNameMethod.invoke(skinManagerInstance, playerName);
-            }
-
-            if (skin == null) {
-                skin = tryResolveSkinByAnyMethod(uuid, playerName);
-            }
-
-            SkinProperty prop = extractSkinPropertyFromObject(skin);
-            if (prop != null && prop.value() != null && !prop.value().isEmpty()) {
-                skinCache.put(uuid, prop.value());
-                logSkinDebug("CMI", uuid, playerName, prop);
-                return prop;
-            }
-            logSkinDebugMiss("CMI", uuid, playerName, skin);
-        } catch (Throwable e) {
-            if (!loggedCmiLookupFailure) {
-                loggedCmiLookupFailure = true;
-                Lovechat.getInstance().getLogger().warning(
-                        "CMI skin lookup failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
-            }
-        }
-
-        return null;
-    }
-
-    private static SkinProperty getSkinPropertyFromCmiCache(UUID uuid, String playerName) {
-        try {
-            Class<?> cmiLibClass = Class.forName("net.Zrips.CMILib.CMILib");
-            Object cmiLibInstance = cmiLibClass.getMethod("getInstance").invoke(null);
-            Object skinManager = cmiLibClass.getMethod("getSkinManager").invoke(cmiLibInstance);
-            if (skinManager == null) return null;
-
-            Object skin = null;
-            try {
-                var byNameField = skinManager.getClass().getField("skinCacheByName");
-                Object byNameObj = byNameField.get(skinManager);
-                if (byNameObj instanceof java.util.Map<?, ?> byName && playerName != null) {
-                    skin = byName.get(playerName);
-                }
-            } catch (NoSuchFieldException ignored) {}
-
-            if (skin == null) {
-                try {
-                    var byUuidField = skinManager.getClass().getField("skinCacheByUUID");
-                    Object byUuidObj = byUuidField.get(skinManager);
-                    if (byUuidObj instanceof java.util.Map<?, ?> byUuid) {
-                        skin = byUuid.get(uuid);
-                    }
-                } catch (NoSuchFieldException ignored) {}
-            }
-
-            SkinProperty prop = extractSkinPropertyFromObject(skin);
-            if (prop != null && prop.value() != null && !prop.value().isEmpty()) {
-                return prop;
-            }
-            logSkinDebugMiss("CMI_CACHE", uuid, playerName, skin);
-        } catch (Throwable e) {
-            if (!loggedCmiCacheLookupFailure) {
-                loggedCmiCacheLookupFailure = true;
-                Lovechat.getInstance().getLogger().warning(
-                        "CMI skin lookup failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
-            }
-        }
-        return null;
     }
 
     private static SkinProperty getSkinPropertyFromProfile(Player player) {
@@ -428,125 +226,6 @@ public class CMISkinUtil {
             }
             logSkinDebugMiss("PROFILE", player.getUniqueId(), player.getName(), properties);
         } catch (Exception ignored) {}
-        return null;
-    }
-
-    private static String invokeSkinString(Class<?> skinClass, Object skin, String... methodNames) {
-        for (String methodName : methodNames) {
-            try {
-                Method method = skinClass.getMethod(methodName);
-                Object result = method.invoke(skin);
-                if (result instanceof String str && !str.isEmpty()) {
-                    return str;
-                }
-            } catch (NoSuchMethodException ignored) {
-            } catch (Throwable e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private static Object tryResolveSkinByAnyMethod(UUID uuid, String playerName) {
-        try {
-            for (Method method : skinManagerClass.getMethods()) {
-                String name = method.getName().toLowerCase();
-                if (!name.contains("skin")) continue;
-                if (method.getParameterCount() != 1) continue;
-                Class<?> param = method.getParameterTypes()[0];
-                try {
-                    if (param == UUID.class) {
-                        return method.invoke(skinManagerInstance, uuid);
-                    }
-                    if (param == String.class && playerName != null) {
-                        return method.invoke(skinManagerInstance, playerName);
-                    }
-                    if (param == Player.class) {
-                        Player p = Bukkit.getPlayer(uuid);
-                        if (p != null) return method.invoke(skinManagerInstance, p);
-                    }
-                } catch (Throwable ignored) {}
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    private static SkinProperty extractSkinPropertyFromObject(Object skin) {
-        if (skin == null) return null;
-
-        if (skin instanceof String str && !str.isEmpty()) {
-            return new SkinProperty(normalizeTextureValue(str), null);
-        }
-
-        Class<?> skinClass = skin.getClass();
-        String className = skinClass.getName().toLowerCase();
-
-        if (className.endsWith("property")) {
-            String value = invokeSkinString(skinClass, skin, "getValue");
-            if (value != null && !value.isEmpty()) {
-                String signature = invokeSkinString(skinClass, skin, "getSignature");
-                return new SkinProperty(normalizeTextureValue(value), signature);
-            }
-        }
-
-        try {
-            Method getProperties = skinClass.getMethod("getProperties");
-            Object properties = getProperties.invoke(skin);
-            SkinProperty fromProps = extractSkinPropertyFromProperties(properties);
-            if (fromProps != null) return fromProps;
-        } catch (Throwable ignored) {}
-
-        try {
-            Method getTextures = skinClass.getMethod("getTextures");
-            Object textures = getTextures.invoke(skin);
-            SkinProperty fromTextures = extractSkinPropertyFromProperties(textures);
-            if (fromTextures != null) return fromTextures;
-        } catch (Throwable ignored) {}
-
-        String value = invokeSkinString(skinClass, skin, "getTexture", "getValue", "getSkin", "getBase64", "getData");
-        if (value != null && !value.isEmpty()) {
-            String signature = invokeSkinString(skinClass, skin, "getSignature", "getSkinSignature", "getSig");
-            return new SkinProperty(normalizeTextureValue(value), signature);
-        }
-
-        try {
-            var field = skinClass.getDeclaredField("value");
-            field.setAccessible(true);
-            Object val = field.get(skin);
-            if (val instanceof String str && !str.isEmpty()) {
-                String signature = null;
-                try {
-                    var sigField = skinClass.getDeclaredField("signature");
-                    sigField.setAccessible(true);
-                    Object sigVal = sigField.get(skin);
-                    if (sigVal instanceof String sig && !sig.isEmpty()) signature = sig;
-                } catch (Throwable ignored) {}
-                return new SkinProperty(normalizeTextureValue(str), signature);
-            }
-        } catch (Throwable ignored) {}
-
-        return null;
-    }
-
-    private static SkinProperty extractSkinPropertyFromProperties(Object properties) {
-        if (properties == null) return null;
-        if (properties instanceof Iterable<?> iterable) {
-            for (Object prop : iterable) {
-                if (prop == null) continue;
-                try {
-                    String name = (String) prop.getClass().getMethod("getName").invoke(prop);
-                    if (!"textures".equalsIgnoreCase(name)) continue;
-                    String value = (String) prop.getClass().getMethod("getValue").invoke(prop);
-                    String signature = null;
-                    try {
-                        signature = (String) prop.getClass().getMethod("getSignature").invoke(prop);
-                    } catch (NoSuchMethodException ignored) {}
-                    if (value != null && !value.isEmpty()) {
-                        return new SkinProperty(normalizeTextureValue(value), signature);
-                    }
-                } catch (Throwable ignored) {}
-            }
-        }
         return null;
     }
 
@@ -640,7 +319,7 @@ public class CMISkinUtil {
     }
 
     /**
-     * Создать JSON компонент головы игрока с текстурой CMI
+     * Создать JSON компонент головы игрока
      * Возвращает компонент с именем игрока (голова через type: player)
      * @param playerName Имя игрока
      * @param uuid UUID игрока
@@ -653,7 +332,7 @@ public class CMISkinUtil {
     }
 
     /**
-     * Получить URL текстуры скина игрока из CMI.
+     * Получить URL текстуры скина игрока.
      * Возвращает прямой URL на PNG текстуру или null если не удалось.
      */
     @SuppressWarnings("unused")

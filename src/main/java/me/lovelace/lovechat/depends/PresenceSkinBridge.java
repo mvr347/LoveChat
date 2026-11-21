@@ -10,12 +10,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Thin, isolated wrapper over LoveCore's {@link PresenceOracle}. It lives in its own class so that
+ * Thin, isolated wrapper over LoveCore's {@link PresenceOracle} (LoveEssential). It lives in its own class so that
  * LoveCore types are only linked when this class is first touched: if LoveCore is not installed
  * (it is a soft dependency) the {@link LinkageError} is caught here and reported as "provider missing",
  * instead of breaking {@link CMISkinUtil} as a whole.
  *
- * <p>The provider is resolved on every call and never cached in a field: providers register late
+ * <p>The provider is resolved on every call and never cached in a field: it registers late
  * (LoveEssential may enable after LoveChat) and can be re-registered on reload.</p>
  */
 final class PresenceSkinBridge {
@@ -31,17 +31,17 @@ final class PresenceSkinBridge {
         static final Lookup MISSING = new Lookup(false, null, null);
     }
 
-    static boolean providerPresent(@NotNull String providerId) {
+    static boolean providerPresent() {
         try {
-            return LoveCore.provider(PresenceOracle.class, providerId).isPresent();
+            return LoveCore.loveEssential(PresenceOracle.class).isPresent();
         } catch (LinkageError loveCoreAbsent) {
             return false;
         }
     }
 
-    static @NotNull Lookup skin(@NotNull String providerId, @NotNull UUID playerId) {
+    static @NotNull Lookup skin(@NotNull UUID playerId) {
         try {
-            Optional<PresenceOracle> oracle = LoveCore.provider(PresenceOracle.class, providerId);
+            Optional<PresenceOracle> oracle = LoveCore.loveEssential(PresenceOracle.class);
             if (oracle.isEmpty()) {
                 return Lookup.MISSING;
             }
@@ -55,9 +55,9 @@ final class PresenceSkinBridge {
     }
 
     /** Styled nickname (colour, gradient) from the provider, or null when there is none or the provider is missing. */
-    static @Nullable net.kyori.adventure.text.Component displayName(@NotNull String providerId, @NotNull UUID playerId) {
+    static @Nullable net.kyori.adventure.text.Component displayName(@NotNull UUID playerId) {
         try {
-            return LoveCore.provider(PresenceOracle.class, providerId)
+            return LoveCore.loveEssential(PresenceOracle.class)
                     .flatMap(oracle -> oracle.displayName(playerId))
                     .orElse(null);
         } catch (LinkageError loveCoreAbsent) {
