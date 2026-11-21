@@ -69,6 +69,16 @@ public class CMISkinUtil {
         return PresenceSkinBridge.providerPresent();
     }
 
+    /**
+     * Kept so addons compiled against the old API do not fail with NoSuchMethodError.
+     *
+     * @deprecated CMI support was removed; forwards to {@link #isSkinProviderAvailable()}.
+     */
+    @Deprecated
+    public static boolean isCMIAvailable() {
+        return isSkinProviderAvailable();
+    }
+
     public static ItemStack getPlayerHead(Player player) {
         ItemStack head = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
 
