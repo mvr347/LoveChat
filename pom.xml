@@ -61,14 +61,6 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- CMI API для поддержки скинов -->
-        <dependency>
-            <groupId>com.github.Zrips</groupId>
-            <artifactId>CMI-API</artifactId>
-            <version>9.7.14.3</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Gson для парсинга JSON -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -81,7 +73,7 @@
         <dependency>
             <groupId>com.github.mvr347.LoveCore</groupId>
             <artifactId>lovecore-api</artifactId>
-            <version>d39a424e87</version>
+            <version>672f1e4f78</version>
             <scope>provided</scope>
         </dependency>
 

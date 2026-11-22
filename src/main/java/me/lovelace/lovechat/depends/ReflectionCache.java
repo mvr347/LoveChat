@@ -9,8 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Кэш reflection-объектов (Class/Method/Constructor/Field), которые не меняются
- * между вызовами в рамках одного запуска JVM. NMS reflection (HeadComponentUtil,
- * CMISkinUtil) раньше резолвился заново на каждое сообщение в чате для каждого
+ * между вызовами в рамках одного запуска JVM. NMS reflection (HeadComponentUtil)
+ * раньше резолвился заново на каждое сообщение в чате для каждого
  * игрока — здесь резолв происходит один раз, дальше отдаётся кэш.
  * Логика поиска (fallback-цепочки) не меняется, кэшируется только сам факт
  * "JVM reflection lookup", а не финальный результат вызова invoke()/newInstance().

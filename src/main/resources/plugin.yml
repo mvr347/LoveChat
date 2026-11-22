@@ -3,7 +3,7 @@ version: "3.0"
 main: me.lovelace.lovechat.Lovechat
 api-version: '26.2'
 depend: [LoveCore, LoveEssential]
-softdepend: [PlaceholderAPI, CMI]
+softdepend: [PlaceholderAPI]
 libraries:
   - "com.github.ben-manes.caffeine:caffeine:3.1.8"
 commands:
